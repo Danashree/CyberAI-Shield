@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberAI Shield — Threat Intelligence</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+.filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+.filter-btn {
+  padding: 5px 14px; border-radius: 20px; font-size: 11px;
+  font-weight: 600; font-family: var(--font-mono); text-transform: uppercase;
+  cursor: pointer; border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-mute); transition: all 0.2s;
+}
+.filter-btn.active { background: rgba(0,229,255,0.1); border-color: rgba(0,229,255,0.3); color: var(--cyan); }
+.filter-btn.crit.active { background: rgba(255,61,90,0.1); border-color: rgba(255,61,90,0.3); color: var(--red); }
+.filter-btn.high.active { background: rgba(255,179,0,0.1); border-color: rgba(255,179,0,0.3); color: var(--amber); }
+
+.detail-panel {
+  position: fixed; right: 0; top: 0; bottom: 0; width: 460px;
+  background: var(--bg-panel); border-left: 1px solid var(--border-lit);
+  z-index: 50; transform: translateX(100%); transition: transform 0.3s ease;
+  overflow-y: auto; box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+}
+.detail-panel.open { transform: translateX(0); }
+.detail-header {
+  padding: 18px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-between;
+  position: sticky; top: 0; background: var(--bg-panel); z-index: 10;
+}
+.detail-body { padding: 20px; }
+.detail-section { margin-bottom: 22px; }
+.detail-section-title {
+  font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text-mute); font-family: var(--font-mono); margin-bottom: 12px;
+}
+.detail-kv { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(26,45,74,0.4); font-size: 12px; }
+.detail-kv:last-child { border-bottom: none; }
+.detail-k { width: 130px; color: var(--text-mute); flex-shrink: 0; font-family: var(--font-mono); }
+.detail-v { color: var(--text-pri); word-break: break-all; }
+
+/* SHAP Chart styles */
+.shap-chart-wrap { margin-bottom: 6px; }
+.shap-chart-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px; font-size: 12px;
+}
+.shap-feature-name {
+  width: 160px; flex-shrink: 0;
+  color: var(--text-sec); font-family: var(--font-mono);
+  font-size: 11px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shap-bar-container {
+  flex: 1; height: 22px; background: var(--bg-hover);
+  border-radius: 4px; overflow: hidden; position: relative;
+}
+.shap-bar-fill {
+  height: 100%; border-radius: 4px;
+  display: flex; align-items: center; padding-left: 8px;
+  font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+  transition: width 0.8s ease; min-width: 30px;
+  white-space: nowrap;
+}
+.shap-bar-fill.critical { background: linear-gradient(90deg, rgba(255,61,90,0.8) 0%, rgba(255,61,90,0.5) 100%); color: #fff; }
+.shap-bar-fill.high     { background: linear-gradient(90deg, rgba(255,179,0,0.8) 0%, rgba(255,179,0,0.5) 100%); color: #fff; }
+.shap-bar-fill.medium   { background: linear-gradient(90deg, rgba(0,229,255,0.7) 0%, rgba(0,229,255,0.4) 100%); color: #fff; }
+.shap-bar-fill.low      { background: linear-gradient(90deg, rgba(0,255,136,0.6) 0%, rgba(0,255,136,0.3) 100%); color: #fff; }
+.shap-pct {
+  width: 40px; text-align: right; font-size: 11px;
+  font-family: var(--font-mono); color: var(--text-mute); flex-shrink: 0;
+}
+
+.threat-intel-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 6px; font-size: 11px;
+  font-family: var(--font-mono); margin-top: 4px;
+}
+.threat-intel-badge.malicious { background: rgba(255,61,90,0.1); color: var(--red); border: 1px solid rgba(255,61,90,0.3); }
+.threat-intel-badge.clean     { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
+.threat-intel-badge.unknown   { background: rgba(120,120,120,0.1); color: var(--text-mute); border: 1px solid var(--border); }
+
+.canvas-wrap {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 14px;
+}
+.canvas-title {
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--cyan);
+  font-family: var(--font-mono); margin-bottom: 12px;
+}
+</style>
+</head>
+<body class="page-threats">
+<div class="app-layout" id="app-layout">
+  <div class="main-area">
+    <div class="page-content">
+
+      <div class="page-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <h1>Threat Intelligence</h1>
+            <p>ML-detected anomalies with SHAP explainability — Isolation Forest</p>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <button class="btn btn-outline" onclick="openUpload()">⬆ Upload Logs</button>
+            <button class="btn btn-primary" onclick="loadThreats()">↻ Refresh</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid-3" style="margin-bottom:18px">
+        <div class="stat-card">
+          <div class="stat-icon red">⚡</div>
+          <div class="stat-label">Total Detected</div>
+          <div class="stat-value red" id="total-count">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">⚠️</div>
+          <div class="stat-label">Active</div>
+          <div class="stat-value amber" id="active-count">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon cyan">🤖</div>
+          <div class="stat-label">Avg Confidence</div>
+          <div class="stat-value cyan" id="avg-conf">—</div>
+        </div>
+      </div>
+
+      <!-- SHAP overview chart -->
+      <div class="card" style="margin-bottom:16px" id="shap-overview-wrap">
+        <div class="card-title">SHAP Feature Importance Overview — Why Threats Were Flagged</div>
+        <canvas id="shap-overview-chart" height="80"></canvas>
+        <div id="shap-overview-empty" style="text-align:center;padding:20px;color:var(--text-mute);font-size:13px">
+          Upload logs to see SHAP feature importance
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterSev(this,'')">All</button>
+        <button class="filter-btn crit" onclick="filterSev(this,'critical')">🔴 Critical</button>
+        <button class="filter-btn high" onclick="filterSev(this,'high')">🟡 High</button>
+        <button class="filter-btn" onclick="filterSev(this,'medium')">🔵 Medium</button>
+        <button class="filter-btn" onclick="filterSev(this,'low')">🟢 Low</button>
+        <div style="margin-left:auto">
+          <select class="form-input form-select"
+            style="width:160px;padding:6px 10px;font-size:12px" onchange="loadThreats()">
+            <option value="">All Attack Types</option>
+            <option>Brute Force</option>
+            <option>Port Scan</option>
+            <option>SQL Injection</option>
+            <option>C2 Beacon</option>
+            <option>Data Exfiltration</option>
+            <option>Anomaly</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="threats-table-wrap">
+          <div class="empty-state" style="padding:40px">
+            No threats detected yet. Upload logs to begin.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <div>
+      <div style="font-family:var(--font-head);font-size:18px;font-weight:700" id="dp-title">Threat Detail</div>
+      <div style="font-size:12px;color:var(--text-mute);margin-top:2px;font-family:var(--font-mono)" id="dp-id">—</div>
+    </div>
+    <button class="btn btn-outline" style="padding:5px 10px;font-size:12px" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-body" id="dp-body"></div>
+</div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">⬆ Upload Logs</div>
+    <div class="modal-sub">Upload a CSV/JSON log file to run ML analysis.</div>
+    <div style="border:2px dashed var(--border-lit);border-radius:var(--radius-lg);padding:28px;text-align:center;margin-bottom:16px;cursor:pointer"
+         onclick="document.getElementById('t-file').click()">
+      <div style="font-size:28px">📂</div>
+      <div style="font-size:13px;color:var(--text-sec);margin-top:6px">Click to browse</div>
+    </div>
+    <input type="file" id="t-file" style="display:none"
+           accept=".csv,.json,.log" onchange="handleTUpload(this.files[0])">
+    <div id="t-file-info"></div>
+    <div id="t-upload-progress" style="display:none;margin:10px 0">
+      <div style="font-size:12px;color:var(--cyan);margin-bottom:6px">🔄 Analyzing...</div>
+      <div class="progress-bar" style="height:4px">
+        <div class="progress-fill cyan" style="width:100%;animation:pulse 1s infinite"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-outline" onclick="closeUpload()">Cancel</button>
+      <button class="btn btn-primary" id="t-upload-btn"
+              onclick="runTUpload()" disabled>🔍 Analyze</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/layout.js"></script>
+<script>
+requireAuth();
+buildLayout('threats');
+
+let allThreats  = [];
+let currentSev  = '';
+let tSelectedFile = null;
+let shapChart   = null;
+
+// ✅ FIXED: read upload_id from URL — set by dashboard "View →" links
+const _tUrlParams    = new URLSearchParams(window.location.search);
+const activeUploadId = _tUrlParams.get('upload_id') || '';
+
+// ✅ Show banner if filtered to a specific upload
+if (activeUploadId) {
+  const subtitleEl = document.querySelector('.page-header p');
+  if (subtitleEl) {
+    subtitleEl.innerHTML = `ML-detected anomalies — <span style="color:var(--cyan);font-family:var(--font-mono)">Filtered: upload ${activeUploadId}</span>
+      <a href="threats.html" style="margin-left:12px;font-size:11px;color:var(--text-mute);text-decoration:underline">Clear filter</a>`;
+  }
+}
+
+const sevClass = {
+  critical: 'pill-critical', high: 'pill-high',
+  medium:   'pill-medium',   low:  'pill-low'
+};
+
+const statusBadge = {
+  active:        '<span class="pill pill-critical">Active</span>',
+  investigating: '<span class="pill pill-high">Investigating</span>',
+  resolved:      '<span class="pill pill-low">Resolved</span>',
+};
+
+// ✅ FIXED: pass activeUploadId so threats.html shows only THIS upload's threats
+async function loadThreats() {
+  try {
+    const attackType = document.querySelector('select').value;
+    const data       = await getThreats(currentSev, attackType, 100, activeUploadId);
+    allThreats       = data.threats || [];
+    renderTable(allThreats);
+    updateStats();
+    renderShapOverview(allThreats);
+  } catch(e) {
+    console.error('Load threats error:', e);
+  }
+}
+
+function updateStats() {
+  document.getElementById('total-count').textContent  = allThreats.length;
+  document.getElementById('active-count').textContent = allThreats.filter(t => t.status === 'active').length;
+  if (allThreats.length) {
+    const avg = allThreats.reduce((s,t) => s + t.confidence, 0) / allThreats.length;
+    document.getElementById('avg-conf').textContent = (avg * 100).toFixed(0) + '%';
+  } else {
+    document.getElementById('avg-conf').textContent = '—';
+  }
+}
+
+function renderTable(threats) {
+  const wrap = document.getElementById('threats-table-wrap');
+  if (!threats.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:40px">No threats found. Upload logs to begin.</div>';
+    return;
+  }
+  wrap.innerHTML = `<table class="data-table">
+    <thead><tr>
+      <th>Time</th><th>Threat Type</th><th>Source IP</th>
+      <th>Target</th><th>Severity</th><th>Confidence</th><th>Status</th><th>Action</th>
+    </tr></thead>
+    <tbody>
+      ${threats.map(t => `<tr style="cursor:pointer" onclick="showDetail('${t.id}')">
+        <td class="mono">${t.timestamp}</td>
+        <td class="highlight">${t.type}</td>
+        <td class="mono">${t.source_ip}</td>
+        <td class="mono">${t.dest_ip||'—'}:${t.port||'—'}</td>
+        <td><span class="pill ${sevClass[t.severity]||'pill-low'}">${t.severity}</span></td>
+        <td class="mono">${(t.confidence*100).toFixed(0)}%</td>
+        <td>${statusBadge[t.status]||statusBadge.active}</td>
+        <td><span style="font-size:11px;color:var(--cyan)">Details →</span></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+// ── SHAP Overview Chart ───────────────────────────────────────
+function renderShapOverview(threats) {
+  const canvas  = document.getElementById('shap-overview-chart');
+  const empty   = document.getElementById('shap-overview-empty');
+
+  // Aggregate SHAP across all threats
+  const featureMap = {};
+  threats.forEach(t => {
+    (t.shap || []).forEach(s => {
+      if (!featureMap[s.feature]) featureMap[s.feature] = [];
+      featureMap[s.feature].push(s.importance);
+    });
+  });
+
+  const features = Object.keys(featureMap);
+  if (!features.length) {
+    canvas.style.display = 'none';
+    empty.style.display  = 'block';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  empty.style.display  = 'none';
+
+  // Average importance per feature
+  const avgImportance = features.map(f => {
+    const vals = featureMap[f];
+    return { feature: f, avg: vals.reduce((a,b) => a+b, 0) / vals.length };
+  }).sort((a,b) => b.avg - a.avg).slice(0, 8);
+
+  const labels = avgImportance.map(x => x.feature);
+  const values = avgImportance.map(x => parseFloat(x.avg.toFixed(1)));
+  const colors = values.map(v =>
+    v >= 70 ? 'rgba(255,61,90,0.75)'  :
+    v >= 50 ? 'rgba(255,179,0,0.75)'  :
+    v >= 30 ? 'rgba(0,229,255,0.7)'   :
+              'rgba(0,255,136,0.6)'
+  );
+
+  if (shapChart) shapChart.destroy();
+  shapChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Avg SHAP Importance (%)',
+        data:  values,
+        backgroundColor: colors,
+        borderColor:     colors.map(c => c.replace('0.7','1').replace('0.75','1').replace('0.6','1')),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.raw}% avg importance across ${threats.length} threat(s)`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid:  { color: 'rgba(26,45,74,0.5)' },
+          ticks: { color: '#7a9cc0', font: { family: 'Space Mono', size: 10 } },
+          max:   100,
+        },
+        y: {
+          grid:  { display: false },
+          ticks: { color: '#7a9cc0', font: { family: 'Space Mono', size: 11 } },
+        }
+      }
+    }
+  });
+}
+
+// ── Detail Panel ──────────────────────────────────────────────
+function showDetail(id) {
+  const t = allThreats.find(x => x.id === id);
+  if (!t) return;
+
+  document.getElementById('dp-title').textContent = t.type;
+  document.getElementById('dp-id').textContent    = `${t.id} — ${t.timestamp}`;
+
+  // SHAP bars
+  const shapHTML = (t.shap || []).map((s, i) => {
+    const colorClass = s.importance >= 70 ? 'critical' :
+                       s.importance >= 50 ? 'high'     :
+                       s.importance >= 30 ? 'medium'   : 'low';
+    return `
+      <div class="shap-chart-row">
+        <div class="shap-feature-name" title="${s.feature}">${s.feature}</div>
+        <div class="shap-bar-container">
+          <div class="shap-bar-fill ${colorClass}"
+               style="width:${s.importance}%" id="shap-bar-${i}">
+            ${s.importance >= 20 ? s.importance + '%' : ''}
+          </div>
+        </div>
+        <div class="shap-pct">${s.importance}%</div>
+      </div>`;
+  }).join('');
+
+  // Threat intel badge
+  const intel     = t.threat_intel || {};
+  const intelHTML = intel.ip ? `
+    <div class="detail-section">
+      <div class="detail-section-title">🌐 IP Reputation (AbuseIPDB)</div>
+      <div class="threat-intel-badge ${intel.is_malicious ? 'malicious' : 'clean'}">
+        ${intel.is_malicious ? '⚠️ MALICIOUS' : '✓ CLEAN'}
+        — Score: ${intel.abuse_score}/100
+      </div>
+      <div class="detail-kv" style="margin-top:8px">
+        <div class="detail-k">Country</div>
+        <div class="detail-v">${intel.country||'Unknown'}</div>
+      </div>
+      <div class="detail-kv">
+        <div class="detail-k">ISP</div>
+        <div class="detail-v">${intel.isp||'Unknown'}</div>
+      </div>
+      <div class="detail-kv">
+        <div class="detail-k">Total Reports</div>
+        <div class="detail-v">${intel.total_reports||0}</div>
+      </div>
+    </div>` : '';
+
+  const rawF = t.raw_features || {};
+  document.getElementById('dp-body').innerHTML = `
+    <div class="detail-section">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <span class="pill ${sevClass[t.severity]||'pill-low'}">${t.severity}</span>
+        ${statusBadge[t.status]||statusBadge.active}
+        <span class="pill pill-info" style="margin-left:auto">
+          Conf: ${(t.confidence*100).toFixed(0)}%
+        </span>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Network Details</div>
+      <div class="detail-kv"><div class="detail-k">Source IP</div><div class="detail-v">${t.source_ip}</div></div>
+      <div class="detail-kv"><div class="detail-k">Dest IP</div><div class="detail-v">${t.dest_ip||'—'}</div></div>
+      <div class="detail-kv"><div class="detail-k">Port</div><div class="detail-v">${t.port||'—'}</div></div>
+      <div class="detail-kv"><div class="detail-k">Username</div><div class="detail-v">${t.username||'—'}</div></div>
+      <div class="detail-kv"><div class="detail-k">Event Type</div><div class="detail-v">${t.event_type||'—'}</div></div>
+      <div class="detail-kv"><div class="detail-k">Timestamp</div><div class="detail-v">${t.timestamp}</div></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Raw Features</div>
+      <div class="detail-kv"><div class="detail-k">Failed Logins</div><div class="detail-v">${rawF.failed_logins||0}</div></div>
+      <div class="detail-kv"><div class="detail-k">Hour of Day</div><div class="detail-v">${rawF.hour_of_day||0}:00</div></div>
+      <div class="detail-kv"><div class="detail-k">Off Hours</div><div class="detail-v">${rawF.off_hours ? '⚠️ Yes' : 'No'}</div></div>
+      <div class="detail-kv"><div class="detail-k">Large Transfer</div><div class="detail-v">${rawF.large_transfer ? '⚠️ Yes' : 'No'}</div></div>
+      <div class="detail-kv"><div class="detail-k">Suspicious Port</div><div class="detail-v">${rawF.suspicious_port ? '⚠️ Yes' : 'No'}</div></div>
+    </div>
+
+    ${shapHTML ? `
+    <div class="detail-section">
+      <div class="detail-section-title">⚡ SHAP — Why This Was Flagged</div>
+      <div class="shap-chart-wrap">${shapHTML}</div>
+      <div style="font-size:10px;color:var(--text-mute);margin-top:8px;font-family:var(--font-mono)">
+        Bar width = feature contribution to anomaly score
+      </div>
+    </div>` : ''}
+
+    ${intelHTML}
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:8px">
+      <button class="btn btn-danger" style="font-size:12px"
+              onclick="alert('IP ${t.source_ip} added to blocklist')">
+        🚫 Block IP
+      </button>
+      <button class="btn btn-primary" style="font-size:12px"
+              onclick="generateReportForThreat('${t.id}')">
+        📄 AI Report
+      </button>
+      <button class="btn btn-outline" style="font-size:12px"
+              onclick="resolveThis('${t.id}')">
+        ✓ Resolve
+      </button>
+    </div>
+  `;
+
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+function filterSev(btn, sev) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSev = sev;
+  loadThreats();
+}
+
+async function resolveThis(id) {
+  try {
+    await resolveThreat(id);
+    closeDetail();
+    loadThreats();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function generateReportForThreat(id) {
+  try {
+    closeDetail();
+    const result = await generateReport([id]);
+    alert(`✅ Report generated: ${result.title}`);
+    window.location.href = 'reports.html';
+  } catch(e) { alert('Report error: ' + e.message); }
+}
+
+function handleTUpload(file) {
+  tSelectedFile = file;
+  document.getElementById('t-file-info').innerHTML = `
+    <div style="padding:8px 12px;background:var(--bg-card);border-radius:6px;font-size:12px;color:var(--text-sec)">
+      ${file.name} — ${(file.size/1024).toFixed(1)} KB
+    </div>`;
+  document.getElementById('t-upload-btn').disabled = false;
+}
+
+async function runTUpload() {
+  if (!tSelectedFile) return;
+  document.getElementById('t-upload-progress').style.display = 'block';
+  document.getElementById('t-upload-btn').disabled = true;
+  try {
+    const r = await uploadLogs(tSelectedFile);
+    closeUpload();
+    document.getElementById('t-upload-progress').style.display = 'none';
+    await loadThreats();
+    alert(`✅ ${r.threats_found} threats found. Risk: ${r.risk_score}`);
+  } catch(e) {
+    document.getElementById('t-upload-progress').style.display = 'none';
+    document.getElementById('t-upload-btn').disabled = false;
+    alert('Upload failed: ' + e.message);
+  }
+}
+
+loadThreats();
+</script>
+</body>
+</html>

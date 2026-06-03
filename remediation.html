@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberAI Shield — Automated Remediation</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+.playbook-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 12px;
+  transition: all 0.2s;
+}
+.playbook-card:hover { border-color: var(--border-lit); }
+.playbook-card.P1 { border-left: 3px solid var(--red); }
+.playbook-card.P2 { border-left: 3px solid var(--amber); }
+.playbook-card.P3 { border-left: 3px solid var(--cyan); }
+.playbook-header  { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.playbook-icon    { font-size: 22px; }
+.playbook-title   { font-size: 14px; font-weight: 700; color: var(--text-pri); }
+.playbook-meta    { font-size: 11px; color: var(--text-mute); font-family: var(--font-mono); margin-top: 2px; }
+.playbook-badges  { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sla-badge {
+  padding: 3px 9px; border-radius: 4px; font-size: 10px;
+  font-family: var(--font-mono); font-weight: 700;
+  background: rgba(255,179,0,0.1); color: var(--amber);
+  border: 1px solid rgba(255,179,0,0.3);
+}
+.mitre-badge {
+  padding: 3px 9px; border-radius: 4px; font-size: 10px;
+  font-family: var(--font-mono);
+  background: rgba(160,130,250,0.1); color: #a78bfa;
+  border: 1px solid rgba(160,130,250,0.3);
+}
+.step-list      { list-style: none; padding: 0; margin: 0; }
+.step-item      { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(26,45,74,0.4); font-size: 12px; color: var(--text-sec); }
+.step-item:last-child { border-bottom: none; }
+.step-num       { width: 22px; height: 22px; border-radius: 50%; background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--cyan); flex-shrink: 0; font-family: var(--font-mono); }
+.step-checkbox  { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; flex-shrink: 0; margin-top: 3px; accent-color: var(--cyan); }
+.step-done      { text-decoration: line-through; color: var(--text-mute); }
+
+/* Deep analysis panel */
+.deep-panel     { background: var(--bg-card); border: 1px solid rgba(160,130,250,0.3); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; }
+.deep-title     { font-family: var(--font-head); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.deep-sub       { font-size: 12px; color: var(--text-mute); margin-bottom: 16px; }
+.action-row     { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(26,45,74,0.3); font-size: 12px; }
+.action-row:last-child { border-bottom: none; }
+.action-step    { width: 24px; height: 24px; border-radius: 6px; background: rgba(160,130,250,0.1); border: 1px solid rgba(160,130,250,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #a78bfa; flex-shrink: 0; }
+.action-text    { flex: 1; color: var(--text-sec); }
+.action-tool    { padding: 2px 8px; border-radius: 4px; background: rgba(0,229,255,0.07); border: 1px solid rgba(0,229,255,0.15); font-size: 10px; color: var(--cyan); font-family: var(--font-mono); }
+.action-sla     { padding: 2px 8px; border-radius: 4px; background: rgba(255,179,0,0.08); color: var(--amber); font-size: 10px; font-family: var(--font-mono); }
+.hardening-item { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; font-size: 12px; color: var(--text-sec); border-bottom: 1px solid rgba(26,45,74,0.2); }
+.hardening-item:last-child { border-bottom: none; }
+.gen-loading    { display: flex; align-items: center; gap: 12px; padding: 20px; color: var(--cyan); font-size: 13px; font-family: var(--font-mono); }
+.filter-bar     { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.progress-ring  { font-size: 11px; color: var(--text-mute); font-family: var(--font-mono); }
+</style>
+</head>
+<body class="page-remediation">
+<div class="app-layout" id="app-layout">
+  <div class="main-area">
+    <div class="page-content">
+
+      <div class="page-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <h1>Automated Remediation</h1>
+            <p>Rule-based instant playbooks + AI deep analysis — R10 Automated Remediation Suggestion System</p>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <button class="btn btn-outline" onclick="loadPlaybooks()">↻ Refresh</button>
+            <button class="btn btn-primary" onclick="runDeepAnalysis()">🤖 AI Deep Analysis</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid-4" style="margin-bottom:18px">
+        <div class="stat-card">
+          <div class="stat-icon red">🚨</div>
+          <div class="stat-label">P1 Critical</div>
+          <div class="stat-value red" id="stat-p1">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">⚠️</div>
+          <div class="stat-label">P2 High</div>
+          <div class="stat-value amber" id="stat-p2">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon cyan">📋</div>
+          <div class="stat-label">Total Playbooks</div>
+          <div class="stat-value cyan" id="stat-total">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✓</div>
+          <div class="stat-label">Steps Completed</div>
+          <div class="stat-value green" id="stat-done">0</div>
+        </div>
+      </div>
+
+      <!-- Deep analysis result panel -->
+      <div id="deep-result" style="display:none"></div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <span style="font-size:12px;color:var(--text-mute)">Filter:</span>
+        <button class="filter-btn active" onclick="filterPriority('all',this)">All</button>
+        <button class="filter-btn crit" onclick="filterPriority('P1',this)">🔴 P1 Critical</button>
+        <button class="filter-btn high" onclick="filterPriority('P2',this)">🟡 P2 High</button>
+        <button class="filter-btn" onclick="filterPriority('P3',this)">🔵 P3 Medium</button>
+        <span id="progress-text" class="progress-ring" style="margin-left:auto"></span>
+      </div>
+
+      <!-- Playbooks list -->
+      <div id="playbooks-list">
+        <div class="empty-state" style="padding:40px">Loading remediation playbooks...</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="upload-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">⬆ Upload Logs</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-outline" onclick="closeUpload()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/layout.js"></script>
+<script>
+requireAuth();
+buildLayout('remediation');
+
+const _urlP       = new URLSearchParams(window.location.search);
+const uploadId    = _urlP.get('upload_id') || '';
+let   allPlaybooks = [];
+let   filterMode  = 'all';
+const completedSteps = new Set(JSON.parse(localStorage.getItem('cyberai_rem_steps') || '[]'));
+
+function saveSteps() {
+  localStorage.setItem('cyberai_rem_steps', JSON.stringify([...completedSteps]));
+}
+
+async function loadPlaybooks() {
+  document.getElementById('playbooks-list').innerHTML =
+    '<div class="empty-state" style="padding:40px">Loading playbooks...</div>';
+  try {
+    const url  = uploadId ? `/remediation/playbooks?upload_id=${uploadId}` : '/remediation/playbooks';
+    const data = await apiCall(url);
+    allPlaybooks = data.playbooks || [];
+    renderPlaybooks();
+    updateStats();
+  } catch(e) {
+    document.getElementById('playbooks-list').innerHTML =
+      `<div class="empty-state" style="padding:40px">Could not load playbooks: ${e.message}</div>`;
+  }
+}
+
+function renderPlaybooks() {
+  const list = document.getElementById('playbooks-list');
+  let filtered = allPlaybooks;
+  if (filterMode !== 'all') filtered = allPlaybooks.filter(p => p.priority === filterMode);
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state" style="padding:40px">No playbooks for this filter. Upload logs first.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => {
+    const stepsHTML = p.steps.map((step, i) => {
+      const key  = `${p.id}-${i}`;
+      const done = completedSteps.has(key);
+      return `<li class="step-item">
+        <input type="checkbox" class="step-checkbox" ${done ? 'checked' : ''}
+               onchange="toggleStep('${key}', this.checked, '${p.id}')">
+        <div class="step-num">${i+1}</div>
+        <div class="${done ? 'step-done' : ''}">${step}</div>
+      </li>`;
+    }).join('');
+
+    const totalSteps = p.steps.length;
+    const doneSteps  = p.steps.filter((_, i) => completedSteps.has(`${p.id}-${i}`)).length;
+    const pct        = totalSteps > 0 ? Math.round(doneSteps / totalSteps * 100) : 0;
+
+    return `<div class="playbook-card ${p.priority}" id="pcard-${p.id}">
+      <div class="playbook-header">
+        <div class="playbook-icon">${p.icon}</div>
+        <div>
+          <div class="playbook-title">${p.threat_type} — ${p.source_ip}</div>
+          <div class="playbook-meta">${p.mitre} · Severity: ${p.severity.toUpperCase()} · ${doneSteps}/${totalSteps} steps done (${pct}%)</div>
+        </div>
+        <div class="playbook-badges">
+          <span class="pill ${p.priority === 'P1' ? 'pill-critical' : p.priority === 'P2' ? 'pill-high' : 'pill-medium'}">${p.priority}</span>
+          <span class="sla-badge">⏱ ${p.sla_minutes}min SLA</span>
+          <span class="mitre-badge">${p.mitre.split('—')[0].trim()}</span>
+        </div>
+      </div>
+      <div style="background:var(--bg-hover);border-radius:3px;height:3px;margin-bottom:12px">
+        <div style="height:100%;border-radius:3px;background:${p.priority==='P1'?'var(--red)':p.priority==='P2'?'var(--amber)':'var(--cyan)'};width:${pct}%;transition:width 0.5s ease"></div>
+      </div>
+      <ul class="step-list">${stepsHTML}</ul>
+    </div>`;
+  }).join('');
+}
+
+function toggleStep(key, checked, playbookId) {
+  if (checked) completedSteps.add(key); else completedSteps.delete(key);
+  saveSteps();
+  updateStats();
+  // Re-render just the progress bar for this card
+  renderPlaybooks();
+}
+
+function updateStats() {
+  const p1    = allPlaybooks.filter(p => p.priority === 'P1').length;
+  const p2    = allPlaybooks.filter(p => p.priority === 'P2').length;
+  const done  = [...completedSteps].filter(k => allPlaybooks.some(p => k.startsWith(p.id))).length;
+  document.getElementById('stat-p1').textContent    = p1;
+  document.getElementById('stat-p2').textContent    = p2;
+  document.getElementById('stat-total').textContent = allPlaybooks.length;
+  document.getElementById('stat-done').textContent  = done;
+
+  const total = allPlaybooks.reduce((s, p) => s + p.steps.length, 0);
+  document.getElementById('progress-text').textContent =
+    total > 0 ? `Overall: ${done}/${total} steps completed` : '';
+}
+
+function filterPriority(mode, btn) {
+  filterMode = mode;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPlaybooks();
+}
+
+async function runDeepAnalysis() {
+  const resultEl = document.getElementById('deep-result');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `<div class="deep-panel">
+    <div class="gen-loading">
+      <div class="progress-bar" style="width:200px;height:4px"><div class="progress-fill cyan" style="width:100%;animation:pulse 1s infinite"></div></div>
+      🤖 Running AI Deep Analysis — Groq LLM analyzing all threats...
+    </div>
+  </div>`;
+
+  try {
+    const body = uploadId ? { upload_id: uploadId } : {};
+    const data = await apiCall('/remediation/deep-analysis', {
+      method: 'POST',
+      body:   JSON.stringify(body),
+    });
+    renderDeepResult(data);
+  } catch(e) {
+    resultEl.innerHTML = `<div class="deep-panel"><div style="color:var(--red);font-size:13px">❌ Deep analysis failed: ${e.message}</div></div>`;
+  }
+}
+
+function renderDeepResult(d) {
+  const immHTML = (d.immediate_actions || []).map(a => `
+    <div class="action-row">
+      <div class="action-step">${a.step}</div>
+      <div class="action-text">${a.action}</div>
+      <span class="action-tool">${a.tool || ''}</span>
+      <span class="action-sla">${a.sla || ''}</span>
+    </div>`).join('');
+
+  const shortHTML = (d.short_term_actions || []).map(a => `
+    <div class="action-row">
+      <div class="action-step">${a.step}</div>
+      <div class="action-text">${a.action}</div>
+      <span class="action-tool">${a.tool || ''}</span>
+      <span class="action-sla">${a.sla || ''}</span>
+    </div>`).join('');
+
+  const hardenHTML = (d.long_term_hardening || []).map((h, i) => `
+    <div class="hardening-item">
+      <span style="color:var(--green);flex-shrink:0">🛡️</span>
+      <span>${h}</span>
+    </div>`).join('');
+
+  const mitre = (d.mitre_techniques || []).map(m =>
+    `<span class="mitre-badge" style="margin:2px">${m}</span>`).join('');
+
+  document.getElementById('deep-result').innerHTML = `
+  <div class="deep-panel" style="margin-bottom:16px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <div class="deep-title">🤖 AI Deep Remediation Analysis</div>
+        <div class="deep-sub">${d.threat_count} threats analyzed · ${d.analyst} · ${d.generated_at?.slice(0,16)||''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${d.escalation_required ? '<span class="pill pill-critical">🚨 Escalation Required</span>' : '<span class="pill pill-low">✓ No Escalation Needed</span>'}
+        <span class="sla-badge">Risk Reduction: ${d.risk_reduction_estimate||'N/A'}</span>
+      </div>
+    </div>
+
+    <div style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.1);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px;color:var(--text-sec);line-height:1.7">
+      ${d.executive_summary || ''}
+    </div>
+
+    ${d.threat_actor_profile ? `<div style="font-size:11px;color:var(--text-mute);font-family:var(--font-mono);margin-bottom:14px;padding:8px 12px;background:rgba(255,179,0,0.05);border-radius:var(--radius);border:1px solid rgba(255,179,0,0.15)">
+      🎯 Threat Actor Profile: ${d.threat_actor_profile}
+    </div>` : ''}
+
+    ${mitre ? `<div style="margin-bottom:14px">${mitre}</div>` : ''}
+
+    ${immHTML ? `<div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--red);font-family:var(--font-mono);margin-bottom:8px">⚡ Immediate Actions</div>
+      ${immHTML}
+    </div>` : ''}
+
+    ${shortHTML ? `<div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber);font-family:var(--font-mono);margin-bottom:8px">🕐 Short-Term Actions</div>
+      ${shortHTML}
+    </div>` : ''}
+
+    ${hardenHTML ? `<div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);font-family:var(--font-mono);margin-bottom:8px">🛡️ Long-Term Hardening</div>
+      ${hardenHTML}
+    </div>` : ''}
+
+    ${d.compliance_impact ? `<div style="font-size:11px;color:var(--text-mute);padding:8px 12px;background:rgba(160,130,250,0.05);border-radius:var(--radius);border:1px solid rgba(160,130,250,0.15)">
+      📋 Compliance: ${d.compliance_impact}
+    </div>` : ''}
+  </div>`;
+}
+
+loadPlaybooks();
+</script>
+</body>
+</html>

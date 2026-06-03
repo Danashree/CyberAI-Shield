@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberAI Shield — Incident Reports</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+.report-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px;
+  margin-bottom: 12px; transition: all 0.2s; cursor: pointer;
+}
+.report-card:hover { border-color: var(--border-lit); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+.report-num {
+  font-family: var(--font-mono); font-size: 11px; color: var(--cyan);
+  background: rgba(0,229,255,0.07); border: 1px solid rgba(0,229,255,0.2);
+  padding: 2px 8px; border-radius: 4px; flex-shrink: 0;
+}
+.report-title   { font-size: 14px; font-weight: 600; color: var(--text-pri); flex: 1; }
+.report-meta    { display: flex; gap: 14px; font-size: 11px; color: var(--text-mute); font-family: var(--font-mono); margin-top: 4px; }
+.report-summary { font-size: 12px; color: var(--text-sec); line-height: 1.6; margin: 10px 0; }
+.report-tag {
+  padding: 2px 8px; border-radius: 4px;
+  background: var(--bg-hover); border: 1px solid var(--border);
+  font-size: 10px; font-family: var(--font-mono); color: var(--text-mute);
+}
+
+/* Compliance badge */
+.compliance-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 4px;
+  background: rgba(120,100,200,0.12); border: 1px solid rgba(120,100,200,0.3);
+  font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+  color: #a78bfa; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* Compliance score ring */
+.comp-score-wrap {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 14px;
+}
+.comp-score-circle {
+  width: 60px; height: 60px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-size: 18px; font-weight: 700;
+  border: 3px solid;
+}
+.comp-score-circle.high   { border-color: var(--green); color: var(--green); }
+.comp-score-circle.medium { border-color: var(--amber); color: var(--amber); }
+.comp-score-circle.low    { border-color: var(--red);   color: var(--red); }
+
+.report-viewer {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+}
+.report-doc {
+  width: 800px; max-height: 90vh; overflow-y: auto;
+  background: var(--bg-panel); border: 1px solid var(--border-lit);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.report-doc-header {
+  padding: 24px 28px 20px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(0,229,255,0.05) 0%, transparent 60%);
+  position: sticky; top: 0; backdrop-filter: blur(8px); z-index: 5;
+}
+.report-doc-body { padding: 24px 28px; }
+.doc-section { margin-bottom: 24px; }
+.doc-section h3 {
+  font-family: var(--font-head); font-size: 13px; font-weight: 700;
+  color: var(--cyan); margin-bottom: 10px;
+  text-transform: uppercase; letter-spacing: 1px;
+  padding-bottom: 6px; border-bottom: 1px solid rgba(0,229,255,0.15);
+}
+.doc-section p, .doc-section li { font-size: 13px; color: var(--text-sec); line-height: 1.7; }
+.doc-section ul { padding-left: 18px; }
+.doc-section ul li { margin-bottom: 4px; }
+.timeline-item {
+  display: flex; gap: 14px; padding: 10px 0;
+  border-bottom: 1px solid rgba(26,45,74,0.4); font-size: 12px;
+}
+.tl-time  { width: 80px; color: var(--text-mute); font-family: var(--font-mono); flex-shrink: 0; }
+.tl-event { color: var(--text-sec); }
+.rec-item {
+  display: flex; gap: 10px; padding: 10px 12px; margin-bottom: 6px;
+  background: var(--bg-card); border-radius: 6px; border: 1px solid var(--border);
+  font-size: 12px; align-items: flex-start;
+}
+.rec-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(0,229,255,0.15); color: var(--cyan);
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); flex-shrink: 0; margin-top: 1px;
+}
+.violation-item {
+  padding: 10px 12px; margin-bottom: 8px;
+  background: rgba(255,61,90,0.05); border: 1px solid rgba(255,61,90,0.2);
+  border-radius: var(--radius); font-size: 12px;
+}
+.violation-control { font-weight: 600; color: var(--text-pri); margin-bottom: 3px; }
+.violation-req     { font-size: 11px; color: var(--cyan); font-family: var(--font-mono); margin-bottom: 3px; }
+.violation-issue   { color: var(--text-sec); }
+.generating-overlay {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+}
+.gen-box {
+  background: var(--bg-panel); border: 1px solid var(--border-lit);
+  border-radius: var(--radius-lg); padding: 36px 44px; text-align: center;
+}
+.pdf-btn {
+  background: linear-gradient(90deg, #e53935 0%, #c62828 100%);
+  color: #fff; border: none; padding: 8px 16px;
+  border-radius: var(--radius); font-size: 13px; font-weight: 600;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+  transition: all 0.2s; font-family: var(--font-body);
+}
+.pdf-btn:hover { box-shadow: 0 0 16px rgba(229,57,53,0.4); transform: translateY(-1px); }
+</style>
+</head>
+<body class="page-reports">
+<div class="app-layout" id="app-layout">
+  <div class="main-area">
+    <div class="page-content">
+
+      <div class="page-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <h1>Incident Reports</h1>
+            <p>AI-generated security incident reports with SHAP explanations and remediation guidance</p>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="loadReports()">↻ Refresh</button>
+            <button class="btn btn-outline" onclick="openComplianceModal()" style="border-color:rgba(120,100,200,0.4);color:#a78bfa">
+              📋 Compliance Report
+            </button>
+            <button class="btn btn-primary" onclick="generateFromThreats()">
+              🤖 Generate AI Report
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid-3" style="margin-bottom:18px">
+        <div class="stat-card">
+          <div class="stat-icon cyan">📄</div>
+          <div class="stat-label">Total Reports</div>
+          <div class="stat-value cyan" id="total-reports">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">🔴</div>
+          <div class="stat-label">Critical</div>
+          <div class="stat-value red" id="critical-reports">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">⚡</div>
+          <div class="stat-label">Active Incidents</div>
+          <div class="stat-value amber" id="active-reports">0</div>
+        </div>
+      </div>
+
+      <div id="reports-list">
+        <div class="empty-state"
+             style="padding:40px;background:var(--bg-card);border-radius:var(--radius-lg);border:1px solid var(--border)">
+          No reports yet. Click <strong style="color:var(--cyan)">"Generate AI Report"</strong>
+          to create one from detected threats.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Report Viewer -->
+<div class="report-viewer hidden" id="report-viewer"
+     onclick="if(event.target===this)closeReport()">
+  <div class="report-doc" id="report-doc"></div>
+</div>
+
+<!-- Generating overlay -->
+<div class="generating-overlay hidden" id="gen-overlay">
+  <div class="gen-box">
+    <div style="font-size:40px;margin-bottom:14px">🤖</div>
+    <div style="font-family:var(--font-head);font-size:22px;font-weight:700;margin-bottom:8px"
+         id="gen-overlay-title">Generating AI Report</div>
+    <div style="font-size:13px;color:var(--text-sec);margin-bottom:18px" id="gen-overlay-sub">
+      Groq LLM is analyzing threats and writing your incident report...
+    </div>
+    <div class="progress-bar" style="height:4px">
+      <div class="progress-fill cyan" style="width:100%;animation:pulse 1s infinite"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Compliance Modal -->
+<div class="modal-overlay hidden" id="compliance-modal">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">📋 Compliance Report Generator</div>
+    <div class="modal-sub">Generate a framework-mapped compliance audit from active threats.</div>
+    <div class="form-group">
+      <label class="form-label">Compliance Framework</label>
+      <select class="form-input form-select" id="compliance-framework">
+        <option value="gdpr">GDPR — General Data Protection Regulation</option>
+        <option value="hipaa">HIPAA — Health Insurance Portability and Accountability Act</option>
+        <option value="pci_dss">PCI-DSS — Payment Card Industry Data Security Standard</option>
+        <option value="iso27001">ISO 27001 — Information Security Management</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Report Title <span style="color:var(--text-mute);font-weight:400">(optional)</span></label>
+      <input class="form-input" id="compliance-title" placeholder="e.g. Q1 2025 GDPR Security Audit">
+    </div>
+    <div id="compliance-error"
+         style="display:none;background:rgba(255,61,90,0.1);border:1px solid rgba(255,61,90,0.3);
+                border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeComplianceModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="runComplianceReport()"
+              style="background:linear-gradient(90deg,#7c3aed,#5b21b6)">
+        🤖 Generate Compliance Report
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">⬆ Upload Logs</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-outline" onclick="closeUpload()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/layout.js"></script>
+<script>
+requireAuth();
+buildLayout('reports');
+
+let reports = [];
+const sevClass = {
+  critical: 'pill-critical', high: 'pill-high',
+  medium:   'pill-medium',   low:  'pill-low'
+};
+const statusBadge = {
+  active:        '<span class="pill pill-critical">Active</span>',
+  investigating: '<span class="pill pill-high">Investigating</span>',
+  resolved:      '<span class="pill pill-low">Resolved</span>',
+};
+
+// ── Load reports list ─────────────────────────────────────────
+async function loadReports() {
+  try {
+    const data = await getReports();
+    reports    = data.reports || [];
+    renderReports();
+    updateStats();
+  } catch(e) { console.error('Load reports error:', e); }
+}
+
+function updateStats() {
+  document.getElementById('total-reports').textContent    = reports.length;
+  document.getElementById('critical-reports').textContent = reports.filter(r => r.severity === 'critical').length;
+  document.getElementById('active-reports').textContent   = reports.filter(r => r.status === 'active').length;
+}
+
+function renderReports() {
+  const list = document.getElementById('reports-list');
+  if (!reports.length) {
+    list.innerHTML = `
+      <div class="empty-state"
+           style="padding:40px;background:var(--bg-card);border-radius:var(--radius-lg);border:1px solid var(--border)">
+        No reports yet. Click <strong style="color:var(--cyan)">"Generate AI Report"</strong>
+        to create one from detected threats.
+      </div>`;
+    return;
+  }
+  list.innerHTML = reports.map(r => {
+    const isCompliance = r.type === 'compliance';
+    return `
+    <div class="report-card" onclick="${isCompliance ? `openComplianceReport('${r.id}')` : `openReport('${r.id}')`}">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px">
+        <div class="report-num">${r.id}</div>
+        <div style="flex:1">
+          <div class="report-title">${r.title}</div>
+          <div class="report-meta">
+            <span>📅 ${r.generated_at ? r.generated_at.slice(0,16).replace('T',' ') : '—'}</span>
+            <span>⚡ ${r.threat_count||0} threat(s)</span>
+            <span>🤖 ${r.analyst||'AI Generated'}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          ${isCompliance
+            ? `<span class="compliance-badge">📋 ${r.framework||'Compliance'}</span>`
+            : `<span class="pill ${sevClass[r.severity]||'pill-low'}">${r.severity||'unknown'}</span>`
+          }
+          ${statusBadge[r.status]||statusBadge.active}
+        </div>
+      </div>
+      <div class="report-summary">${r.summary||'No summary available.'}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${(r.iocs||[]).slice(0,3).map(i => `<span class="report-tag">${i}</span>`).join('')}
+          ${isCompliance && r.compliance_score !== undefined
+            ? `<span class="report-tag" style="color:var(--cyan)">Score: ${r.compliance_score}/100</span>`
+            : ''}
+        </div>
+        <span style="font-size:12px;color:var(--cyan);font-weight:600">Open Report →</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Generate incident report from active threats ───────────────
+// ✅ FIXED: scope report generation to the current upload if coming from a filtered view
+const _rUrlParams      = new URLSearchParams(window.location.search);
+const activeUploadId   = _rUrlParams.get('upload_id') || '';
+
+// ✅ Store the upload_id when user generates reports so compliance also scopes it
+window.activeReportUploadId = activeUploadId || null;
+
+// ── Generate incident report from active threats ───────────────
+async function generateFromThreats() {
+  try {
+    // ✅ FIXED: fetch only this upload's threats, not all uploads
+    const data    = await getThreats('', '', 100, window.activeReportUploadId || '');
+    const threats = (data.threats||[]).filter(t => t.status === 'active');
+
+    if (!threats.length) {
+      alert('No active threats found. Upload logs first to detect threats.');
+      return;
+    }
+
+    showGenOverlay('Generating AI Report', 'Groq LLM is analyzing threats and writing your incident report...');
+
+    // ✅ Pass upload_id to backend so report is scoped correctly
+    const report = await generateReport(
+      threats.map(t => t.id),
+      '',
+      window.activeReportUploadId || ''
+    );
+
+    hideGenOverlay();
+    reports.unshift(report);
+    renderReports();
+    updateStats();
+    openReport(report.id);
+  } catch(e) {
+    hideGenOverlay();
+    alert('Report generation failed: ' + e.message);
+  }
+}
+
+// ── Compliance modal ──────────────────────────────────────────
+function openComplianceModal() {
+  document.getElementById('compliance-error').style.display = 'none';
+  document.getElementById('compliance-modal').classList.remove('hidden');
+}
+
+function closeComplianceModal() {
+  document.getElementById('compliance-modal').classList.add('hidden');
+}
+
+async function runComplianceReport() {
+  const framework = document.getElementById('compliance-framework').value;
+  const title     = document.getElementById('compliance-title').value.trim();
+  const errEl     = document.getElementById('compliance-error');
+  errEl.style.display = 'none';
+  closeComplianceModal();
+
+  showGenOverlay(
+    'Generating Compliance Report',
+    `Analyzing threats against ${framework.toUpperCase()} framework requirements...`
+  );
+
+  try {
+    // ✅ FIXED: send upload_id to backend so compliance uses only THIS upload's threats
+    const report = await apiCall('/reports/compliance/generate', {
+      method: 'POST',
+      body: JSON.stringify({
+        framework,
+        title:     title || null,
+        upload_id: window.activeReportUploadId || null,  // ✅ KEY FIX
+      }),
+    });
+
+    hideGenOverlay();
+    reports.unshift({ ...report, type: 'compliance' });
+    renderReports();
+    updateStats();
+    openComplianceReport(report.id);
+  } catch(e) {
+    hideGenOverlay();
+    openComplianceModal();
+    errEl.textContent   = 'Failed: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+// ── Open incident report viewer ───────────────────────────────
+function openReport(id) {
+  const r = reports.find(x => x.id === id);
+  if (!r) return;
+
+  const timelineHTML = (r.timeline||[]).map(t => `
+    <div class="timeline-item">
+      <div class="tl-time">${t.time||'—'}</div>
+      <div class="tl-event">${t.event||'—'}</div>
+    </div>`).join('');
+
+  const recsHTML = (r.recommendations||[]).map((rec,i) => `
+    <div class="rec-item">
+      <div class="rec-num">${i+1}</div>
+      <div style="color:var(--text-sec)">${rec}</div>
+    </div>`).join('');
+
+  const iocsHTML = (r.iocs||[]).map(i =>
+    `<span class="pill pill-info" style="font-family:var(--font-mono);margin:2px">${i}</span>`
+  ).join('');
+
+  const affectedHTML = (r.affected_systems||[]).map(s =>
+    `<span class="report-tag" style="margin:2px">${s}</span>`
+  ).join('');
+
+  document.getElementById('report-doc').innerHTML = `
+    <div class="report-doc-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--cyan);margin-bottom:6px">${r.id}</div>
+          <div style="font-family:var(--font-head);font-size:22px;font-weight:700">${r.title}</div>
+          <div style="font-size:12px;color:var(--text-mute);margin-top:4px;font-family:var(--font-mono)">
+            ${r.generated_at ? r.generated_at.slice(0,16).replace('T',' ') : '—'} · ${r.analyst}
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" onclick="closeReport()">✕ Close</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span class="pill ${sevClass[r.severity]||'pill-low'}">${r.severity||'unknown'}</span>
+        ${statusBadge[r.status]||statusBadge.active}
+        <span class="pill pill-info">🤖 Groq LLM</span>
+        <span class="pill pill-info">⚡ ${r.threat_count} threat(s)</span>
+        <button class="pdf-btn" style="margin-left:auto" onclick="exportPDF('${r.id}')">📥 Download PDF</button>
+      </div>
+    </div>
+    <div class="report-doc-body">
+      <div class="doc-section">
+        <h3>Executive Summary</h3>
+        <p>${r.summary||'No summary available.'}</p>
+      </div>
+      ${timelineHTML ? `<div class="doc-section"><h3>Attack Timeline</h3>${timelineHTML}</div>` : ''}
+      ${iocsHTML ? `<div class="doc-section"><h3>Indicators of Compromise (IOCs)</h3><div style="display:flex;flex-wrap:wrap;gap:4px">${iocsHTML}</div></div>` : ''}
+      ${affectedHTML ? `<div class="doc-section"><h3>Affected Systems</h3><div style="display:flex;flex-wrap:wrap;gap:4px">${affectedHTML}</div></div>` : ''}
+      ${recsHTML ? `<div class="doc-section"><h3>AI Remediation Recommendations</h3>${recsHTML}</div>` : ''}
+      <div style="display:flex;gap:8px;padding-top:8px">
+        <button class="btn btn-outline" onclick="closeReport()">Close</button>
+        <button class="pdf-btn" onclick="exportPDF('${r.id}')">📥 Download PDF</button>
+      </div>
+    </div>`;
+
+  document.getElementById('report-viewer').classList.remove('hidden');
+}
+
+// ── Open compliance report viewer ─────────────────────────────
+function openComplianceReport(id) {
+  const r = reports.find(x => x.id === id);
+  if (!r) return;
+
+  const scoreNum   = r.compliance_score || 0;
+  const scoreClass = scoreNum >= 70 ? 'high' : scoreNum >= 40 ? 'medium' : 'low';
+
+  const violationsHTML = (r.violations||[]).map(v => `
+    <div class="violation-item">
+      <div class="violation-control">${v.control||'—'}</div>
+      <div class="violation-req">${v.requirement||'—'}</div>
+      <div class="violation-issue">${v.issue||'—'}</div>
+      <div style="margin-top:4px">
+        <span class="pill ${sevClass[v.severity]||'pill-low'}">${v.severity||'—'}</span>
+      </div>
+    </div>`).join('');
+
+  const passedHTML = (r.controls_passed||[]).map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(26,45,74,0.3);font-size:12px">
+      <span style="color:var(--green)">✓</span>
+      <span style="color:var(--text-sec)">${c}</span>
+    </div>`).join('');
+
+  const remHTML = (r.remediation_plan||[]).map(s => `
+    <div class="rec-item">
+      <div class="rec-num">${s.step||'—'}</div>
+      <div>
+        <div style="color:var(--text-pri);font-weight:600;margin-bottom:3px">${s.action||'—'}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+          <span class="pill pill-info" style="font-size:9px">${s.timeline||'—'}</span>
+          <span style="font-size:11px;color:var(--text-mute);font-family:var(--font-mono)">${s.control||''}</span>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const auditHTML = (r.audit_trail||[]).map(a => `
+    <div class="timeline-item">
+      <div class="tl-time">${a.timestamp||'—'}</div>
+      <div class="tl-event">${a.event||'—'}</div>
+    </div>`).join('');
+
+  document.getElementById('report-doc').innerHTML = `
+    <div class="report-doc-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:#a78bfa;margin-bottom:6px">${r.id}</div>
+          <div style="font-family:var(--font-head);font-size:22px;font-weight:700">${r.title}</div>
+          <div style="font-size:12px;color:var(--text-mute);margin-top:4px;font-family:var(--font-mono)">
+            ${r.generated_at ? r.generated_at.slice(0,16).replace('T',' ') : '—'} · ${r.analyst||'AI Generated'}
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" onclick="closeReport()">✕ Close</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span class="compliance-badge">📋 ${r.framework||'Compliance'}</span>
+        <span class="pill pill-info">⚡ ${r.threat_count||0} threat(s)</span>
+        <span class="pill ${r.status==='compliant'?'pill-low':r.status==='partially_compliant'?'pill-high':'pill-critical'}">
+          ${(r.status||'').replace(/_/g,' ')}
+        </span>
+        <span class="pill ${sevClass[r.risk_rating?.toLowerCase()]||'pill-high'}">Risk: ${r.risk_rating||'—'}</span>
+      </div>
+    </div>
+    <div class="report-doc-body">
+
+      <div class="comp-score-wrap">
+        <div class="comp-score-circle ${scoreClass}">${scoreNum}</div>
+        <div>
+          <div style="font-family:var(--font-head);font-size:16px;font-weight:700">Compliance Score</div>
+          <div style="font-size:12px;color:var(--text-sec);margin-top:2px">${r.framework_full||r.framework||''}</div>
+          <div style="font-size:11px;color:var(--text-mute);margin-top:4px;font-family:var(--font-mono)">
+            ${(r.articles_violated||[]).join(' · ')}
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h3>Executive Summary</h3>
+        <p>${r.summary||'No summary available.'}</p>
+      </div>
+
+      ${violationsHTML ? `
+      <div class="doc-section">
+        <h3>⚠️ Compliance Violations (${(r.violations||[]).length})</h3>
+        ${violationsHTML}
+      </div>` : ''}
+
+      ${passedHTML ? `
+      <div class="doc-section">
+        <h3>✅ Controls Passed</h3>
+        ${passedHTML}
+      </div>` : ''}
+
+      ${remHTML ? `
+      <div class="doc-section">
+        <h3>Remediation Plan</h3>
+        ${remHTML}
+      </div>` : ''}
+
+      ${auditHTML ? `
+      <div class="doc-section">
+        <h3>Audit Trail</h3>
+        ${auditHTML}
+      </div>` : ''}
+
+      <div style="display:flex;gap:8px;padding-top:8px">
+        <button class="btn btn-outline" onclick="closeReport()">Close</button>
+        <button class="pdf-btn" onclick="exportCompliancePDF('${r.id}')">📥 Download PDF</button>
+      </div>
+    </div>`;
+
+  document.getElementById('report-viewer').classList.remove('hidden');
+}
+
+function closeReport() {
+  document.getElementById('report-viewer').classList.add('hidden');
+}
+
+// ── Overlay helpers ───────────────────────────────────────────
+function showGenOverlay(title, sub) {
+  document.getElementById('gen-overlay-title').textContent = title;
+  document.getElementById('gen-overlay-sub').textContent   = sub;
+  document.getElementById('gen-overlay').classList.remove('hidden');
+}
+
+function hideGenOverlay() {
+  document.getElementById('gen-overlay').classList.add('hidden');
+}
+
+// ── SIEM push ─────────────────────────────────────────────────
+async function pushToSIEM(reportId) {
+  try {
+    const result = await apiCall('/reports/siem/test');
+    alert(`SIEM Status: ${result.status} — ${result.message}`);
+  } catch(e) {
+    alert('SIEM push: ' + e.message);
+  }
+}
+
+// ── PDF Export — Incident Report ──────────────────────────────
+function exportPDF(reportId) {
+  const r = reports.find(x => x.id === reportId);
+  if (!r) return;
+
+  const { jsPDF } = window.jspdf;
+  const doc    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW  = doc.internal.pageSize.getWidth();
+  const pageH  = doc.internal.pageSize.getHeight();
+  const margin = 18;
+  const colW   = pageW - margin * 2;
+  let y        = margin;
+
+  const addPage   = () => { doc.addPage(); y = margin; };
+  const checkPage = (n=10) => { if (y + n > pageH - margin) addPage(); };
+
+  const heading = (text, size=14, color=[0,180,220]) => {
+    checkPage(12);
+    doc.setFontSize(size); doc.setTextColor(...color);
+    doc.setFont('helvetica','bold'); doc.text(text, margin, y);
+    y += size * 0.5;
+  };
+  const body = (text, size=10, color=[160,180,200]) => {
+    doc.setFontSize(size); doc.setTextColor(...color);
+    doc.setFont('helvetica','normal');
+    const lines = doc.splitTextToSize(text, colW);
+    checkPage(lines.length*(size*0.45)+4);
+    doc.text(lines, margin, y);
+    y += lines.length*(size*0.45)+3;
+  };
+  const divider = () => {
+    checkPage(6); doc.setDrawColor(26,45,74);
+    doc.setLineWidth(0.3); doc.line(margin, y, pageW-margin, y); y += 4;
+  };
+
+  doc.setFillColor(6,13,26); doc.rect(0,0,pageW,pageH,'F');
+  doc.setFillColor(11,22,40); doc.rect(0,0,pageW,50,'F');
+  doc.setFillColor(0,229,255); doc.rect(0,0,3,50,'F');
+
+  doc.setFontSize(22); doc.setTextColor(0,229,255);
+  doc.setFont('helvetica','bold'); doc.text('CyberAI Shield', margin, 18);
+  doc.setFontSize(11); doc.setTextColor(120,156,192);
+  doc.setFont('helvetica','normal'); doc.text('AI-Powered Security Incident Report', margin, 26);
+  doc.setFontSize(9); doc.setTextColor(58,90,122);
+  doc.text(`Report ID: ${r.id}`, margin, 34);
+  doc.text(`Generated: ${r.generated_at?r.generated_at.slice(0,16).replace('T',' '):''} UTC`, margin, 40);
+  doc.text(`Analyst: ${r.analyst}`, margin, 46);
+  y = 58;
+
+  heading(r.title, 16, [232,244,255]); y += 2;
+  const sevColors = {critical:[[255,61,90],[255,200,200]],high:[[255,179,0],[255,240,200]],medium:[[0,180,220],[200,240,255]],low:[[0,255,136],[200,255,220]]};
+  const [bg,fg] = sevColors[r.severity]||sevColors.low;
+  const bw = doc.getStringUnitWidth((r.severity||'').toUpperCase())*9*0.352+12;
+  doc.setFillColor(...bg); doc.roundedRect(margin,y-4,bw,6,1,1,'F');
+  doc.setTextColor(...fg); doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.text((r.severity||'').toUpperCase(), margin+3, y); y += 10;
+
+  divider();
+  heading('EXECUTIVE SUMMARY',11,[0,229,255]); y+=1;
+  body(r.summary||'No summary.'); y+=3;
+
+  if (r.timeline?.length) {
+    divider(); heading('ATTACK TIMELINE',11,[0,229,255]); y+=1;
+    r.timeline.forEach(t => {
+      checkPage(8);
+      doc.setFontSize(9); doc.setTextColor(58,90,122); doc.setFont('helvetica','bold');
+      doc.text(t.time||'—', margin, y);
+      doc.setTextColor(120,156,192); doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      const lines = doc.splitTextToSize(t.event||'—', colW-22);
+      doc.text(lines, margin+22, y); y += Math.max(lines.length*4.5,6);
+    });
+  }
+  if (r.iocs?.length) {
+    divider(); heading('INDICATORS OF COMPROMISE',11,[0,229,255]); y+=1;
+    r.iocs.forEach(ioc => { checkPage(6); doc.setFontSize(10); doc.setTextColor(0,229,255); doc.setFont('courier','normal'); doc.text(`• ${ioc}`, margin+3, y); y+=5.5; });
+  }
+  if (r.affected_systems?.length) {
+    divider(); heading('AFFECTED SYSTEMS',11,[0,229,255]); y+=1;
+    r.affected_systems.forEach(s => { checkPage(6); doc.setFontSize(10); doc.setTextColor(160,185,210); doc.setFont('helvetica','normal'); doc.text(`• ${s}`, margin+3, y); y+=5.5; });
+  }
+  if (r.recommendations?.length) {
+    divider(); heading('RECOMMENDATIONS',11,[0,229,255]); y+=1;
+    r.recommendations.forEach((rec,i) => {
+      checkPage(10);
+      doc.setFillColor(0,229,255); doc.circle(margin+2,y-1,2,'F');
+      doc.setFontSize(9); doc.setTextColor(0,229,255); doc.setFont('helvetica','bold'); doc.text(`${i+1}`, margin+1.3, y);
+      doc.setTextColor(160,185,210); doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      const lines = doc.splitTextToSize(rec, colW-10);
+      doc.text(lines, margin+8, y); y += lines.length*5+3;
+    });
+  }
+
+  const total = doc.internal.getNumberOfPages();
+  for (let i=1;i<=total;i++) {
+    doc.setPage(i);
+    doc.setFillColor(11,22,40); doc.rect(0,pageH-12,pageW,12,'F');
+    doc.setFontSize(8); doc.setTextColor(58,90,122);
+    doc.text('CyberAI Shield v2.4 — Confidential Security Report', margin, pageH-5);
+    doc.text(`Page ${i} of ${total}`, pageW-margin-20, pageH-5);
+  }
+  doc.save(`${r.id}_incident_report.pdf`);
+}
+
+// ── PDF Export — Compliance Report ───────────────────────────
+function exportCompliancePDF(reportId) {
+  const r = reports.find(x => x.id === reportId);
+  if (!r) return;
+
+  const { jsPDF } = window.jspdf;
+  const doc    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW  = doc.internal.pageSize.getWidth();
+  const pageH  = doc.internal.pageSize.getHeight();
+  const margin = 18;
+  const colW   = pageW - margin * 2;
+  let y        = margin;
+
+  const addPage   = () => { doc.addPage(); y = margin; };
+  const checkPage = (n=10) => { if (y + n > pageH - margin) addPage(); };
+  const heading = (text, size=14, color=[160,130,250]) => {
+    checkPage(12); doc.setFontSize(size); doc.setTextColor(...color);
+    doc.setFont('helvetica','bold'); doc.text(text, margin, y); y += size*0.5;
+  };
+  const body = (text, size=10, color=[160,180,200]) => {
+    doc.setFontSize(size); doc.setTextColor(...color);
+    doc.setFont('helvetica','normal');
+    const lines = doc.splitTextToSize(text, colW);
+    checkPage(lines.length*(size*0.45)+4);
+    doc.text(lines, margin, y); y += lines.length*(size*0.45)+3;
+  };
+  const divider = () => {
+    checkPage(6); doc.setDrawColor(26,45,74);
+    doc.setLineWidth(0.3); doc.line(margin,y,pageW-margin,y); y+=4;
+  };
+
+  doc.setFillColor(6,13,26); doc.rect(0,0,pageW,pageH,'F');
+  doc.setFillColor(11,22,40); doc.rect(0,0,pageW,50,'F');
+  doc.setFillColor(120,100,200); doc.rect(0,0,3,50,'F');
+
+  doc.setFontSize(22); doc.setTextColor(160,130,250);
+  doc.setFont('helvetica','bold'); doc.text('CyberAI Shield', margin, 18);
+  doc.setFontSize(11); doc.setTextColor(120,156,192);
+  doc.setFont('helvetica','normal'); doc.text(`${r.framework||'Compliance'} Security Compliance Report`, margin, 26);
+  doc.setFontSize(9); doc.setTextColor(58,90,122);
+  doc.text(`Report ID: ${r.id}`, margin, 34);
+  doc.text(`Generated: ${r.generated_at?r.generated_at.slice(0,16).replace('T',' '):''} UTC`, margin, 40);
+  doc.text(`Framework: ${r.framework_full||r.framework}`, margin, 46);
+  y = 58;
+
+  heading(r.title||'Compliance Report', 16, [232,244,255]); y+=2;
+  doc.setFontSize(11); doc.setTextColor(160,130,250); doc.setFont('helvetica','bold');
+  doc.text(`Compliance Score: ${r.compliance_score||0}/100`, margin, y); y+=7;
+  doc.setFontSize(10); doc.setTextColor(120,156,192); doc.setFont('helvetica','normal');
+  doc.text(`Status: ${(r.status||'').replace(/_/g,' ')} | Risk Rating: ${r.risk_rating||'—'}`, margin, y); y+=8;
+  divider();
+
+  heading('EXECUTIVE SUMMARY',11,[160,130,250]); y+=1;
+  body(r.summary||'No summary.'); y+=3;
+
+  if (r.violations?.length) {
+    divider(); heading('COMPLIANCE VIOLATIONS',11,[255,100,100]); y+=1;
+    r.violations.forEach(v => {
+      checkPage(18);
+      doc.setFontSize(10); doc.setTextColor(232,244,255); doc.setFont('helvetica','bold');
+      doc.text(v.control||'—', margin, y); y+=5;
+      doc.setFontSize(9); doc.setTextColor(160,130,250); doc.setFont('helvetica','normal');
+      doc.text(v.requirement||'—', margin, y); y+=4;
+      doc.setTextColor(160,185,210);
+      const lines = doc.splitTextToSize(v.issue||'—', colW-4);
+      doc.text(lines, margin, y); y+=lines.length*4.5+4;
+    });
+  }
+  if (r.controls_passed?.length) {
+    divider(); heading('CONTROLS PASSED',11,[0,229,150]); y+=1;
+    r.controls_passed.forEach(c => { checkPage(6); doc.setFontSize(10); doc.setTextColor(0,200,120); doc.setFont('helvetica','normal'); doc.text(`✓ ${c}`, margin+3, y); y+=5.5; });
+  }
+  if (r.remediation_plan?.length) {
+    divider(); heading('REMEDIATION PLAN',11,[160,130,250]); y+=1;
+    r.remediation_plan.forEach(s => {
+      checkPage(12);
+      doc.setFontSize(9); doc.setTextColor(160,130,250); doc.setFont('helvetica','bold');
+      doc.text(`Step ${s.step}: ${s.timeline||''}`, margin, y); y+=4;
+      doc.setTextColor(160,185,210); doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      const lines = doc.splitTextToSize(s.action||'—', colW-4);
+      doc.text(lines, margin, y); y+=lines.length*5+3;
+    });
+  }
+
+  const total = doc.internal.getNumberOfPages();
+  for (let i=1;i<=total;i++) {
+    doc.setPage(i);
+    doc.setFillColor(11,22,40); doc.rect(0,pageH-12,pageW,12,'F');
+    doc.setFontSize(8); doc.setTextColor(58,90,122);
+    doc.text('CyberAI Shield v2.4 — Confidential Compliance Report', margin, pageH-5);
+    doc.text(`Page ${i} of ${total}`, pageW-margin-20, pageH-5);
+  }
+  doc.save(`${r.id}_compliance_report.pdf`);
+}
+
+loadReports();
+</script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberAI Shield — Dashboard Analytics</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+.charts-grid     { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.charts-grid-3   { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart-card      { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; }
+.chart-title     { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cyan); font-family: var(--font-mono); margin-bottom: 14px; }
+.chart-subtitle  { font-size: 11px; color: var(--text-mute); margin-top: -10px; margin-bottom: 14px; }
+.heatmap-wrap    { overflow-x: auto; }
+.heatmap-table   { border-collapse: collapse; width: 100%; font-size: 10px; font-family: var(--font-mono); }
+.heatmap-table th { color: var(--text-mute); padding: 3px 4px; text-align: center; font-weight: 400; }
+.heatmap-table td { width: 28px; height: 22px; text-align: center; border-radius: 3px; color: transparent; font-size: 9px; }
+.heatmap-table td:hover { color: #fff; }
+.heatmap-row-label { color: var(--text-sec); text-align: right; padding-right: 8px; white-space: nowrap; font-size: 10px; }
+.ip-bar-row      { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; }
+.ip-label        { width: 110px; color: var(--text-sec); font-family: var(--font-mono); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ip-bar-wrap     { flex: 1; height: 18px; background: var(--bg-hover); border-radius: 3px; overflow: hidden; }
+.ip-bar-fill     { height: 100%; border-radius: 3px; transition: width 0.8s ease; display: flex; align-items: center; padding-left: 6px; font-size: 10px; color: #fff; font-weight: 600; }
+.ip-count        { width: 30px; text-align: right; color: var(--text-mute); font-family: var(--font-mono); font-size: 11px; }
+.ip-bar-fill.critical { background: linear-gradient(90deg, rgba(255,61,90,0.8), rgba(255,61,90,0.5)); }
+.ip-bar-fill.high     { background: linear-gradient(90deg, rgba(255,179,0,0.8), rgba(255,179,0,0.5)); }
+.ip-bar-fill.medium   { background: linear-gradient(90deg, rgba(0,229,255,0.7), rgba(0,229,255,0.4)); }
+.ip-bar-fill.low      { background: linear-gradient(90deg, rgba(0,255,136,0.6), rgba(0,255,136,0.3)); }
+.stat-row        { display: flex; gap: 12px; margin-bottom: 16px; }
+.mini-stat       { flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; text-align: center; }
+.mini-stat-val   { font-size: 24px; font-weight: 700; font-family: var(--font-head); line-height: 1; }
+.mini-stat-lbl   { font-size: 10px; color: var(--text-mute); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+</style>
+</head>
+<body class="page-analytics">
+<div class="app-layout" id="app-layout">
+  <div class="main-area">
+    <div class="page-content">
+
+      <div class="page-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <h1>Dashboard Analytics</h1>
+            <p>Visual threat trends, attack patterns, risk timeline — R9 Dashboard Visualization</p>
+          </div>
+          <button class="btn btn-outline" onclick="loadAll()">↻ Refresh</button>
+        </div>
+      </div>
+
+      <!-- Mini stats row -->
+      <div class="stat-row" id="mini-stats">
+        <div class="mini-stat"><div class="mini-stat-val red" id="ms-total">--</div><div class="mini-stat-lbl">Total Threats</div></div>
+        <div class="mini-stat"><div class="mini-stat-val" style="color:#ff3d5a" id="ms-crit">--</div><div class="mini-stat-lbl">Critical</div></div>
+        <div class="mini-stat"><div class="mini-stat-val" style="color:#ffb300" id="ms-high">--</div><div class="mini-stat-lbl">High</div></div>
+        <div class="mini-stat"><div class="mini-stat-val cyan" id="ms-risk">--</div><div class="mini-stat-lbl">Risk Score</div></div>
+        <div class="mini-stat"><div class="mini-stat-val green" id="ms-uploads">--</div><div class="mini-stat-lbl">Uploads</div></div>
+      </div>
+
+      <!-- Row 1: Trend + Severity timeline -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Threat Detection Trend</div>
+          <div class="chart-subtitle">Threats detected per day — last 14 days</div>
+          <canvas id="trend-chart" height="120"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Severity Timeline</div>
+          <div class="chart-subtitle">Critical / High / Medium / Low — last 7 days</div>
+          <canvas id="sev-chart" height="120"></canvas>
+        </div>
+      </div>
+
+      <!-- Row 2: Risk history + Top IPs -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Risk Score History</div>
+          <div class="chart-subtitle">System risk score over time</div>
+          <canvas id="risk-chart" height="120"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Top Attacker IPs</div>
+          <div class="chart-subtitle">Highest threat-count source IPs</div>
+          <div id="ip-bars"><div class="empty-state" style="padding:20px">Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- Row 3: Heatmap full width -->
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title">Attack Type × Hour of Day Heatmap</div>
+        <div class="chart-subtitle">When each attack type peaks (darker = more activity)</div>
+        <div class="heatmap-wrap" id="heatmap-wrap">
+          <div class="empty-state" style="padding:20px">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Row 4: Attack type doughnut -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Attack Type Distribution</div>
+          <canvas id="attack-doughnut" height="160"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Severity Distribution</div>
+          <canvas id="sev-doughnut" height="160"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="upload-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">⬆ Upload Logs</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-outline" onclick="closeUpload()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/layout.js"></script>
+<script>
+requireAuth();
+buildLayout('analytics');
+
+const CYAN  = 'rgba(0,229,255,0.8)';
+const RED   = 'rgba(255,61,90,0.8)';
+const AMBER = 'rgba(255,179,0,0.8)';
+const MED   = 'rgba(0,229,255,0.5)';
+const GREEN = 'rgba(0,255,136,0.7)';
+const GRID  = 'rgba(26,45,74,0.5)';
+const TICK  = '#7a9cc0';
+
+const chartDefaults = {
+  scales: {
+    x: { grid: { color: GRID }, ticks: { color: TICK, font: { family: 'Space Mono', size: 10 } } },
+    y: { grid: { color: GRID }, ticks: { color: TICK, font: { family: 'Space Mono', size: 10 } }, beginAtZero: true }
+  },
+  plugins: { legend: { labels: { color: TICK, font: { family: 'Space Mono', size: 10 } } } },
+  responsive: true,
+};
+
+let charts = {};
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+async function loadAll() {
+  await Promise.all([
+    loadMiniStats(),
+    loadTrendChart(),
+    loadSeverityTimeline(),
+    loadRiskHistory(),
+    loadTopIPs(),
+    loadHeatmap(),
+    loadDoughnuts(),
+  ]);
+}
+
+async function loadMiniStats() {
+  try {
+    const [summary, risk, history] = await Promise.all([
+      getThreatsSummary(),
+      getRiskScore(),
+      getUploadHistory(),
+    ]);
+    const b = summary.severity_breakdown || {};
+    document.getElementById('ms-total').textContent   = summary.total || 0;
+    document.getElementById('ms-crit').textContent    = b.critical || 0;
+    document.getElementById('ms-high').textContent    = b.high || 0;
+    document.getElementById('ms-risk').textContent    = risk.score || 0;
+    document.getElementById('ms-uploads').textContent = (history.uploads || []).length;
+  } catch(e) { console.error(e); }
+}
+
+async function loadTrendChart() {
+  try {
+    const d = await apiCall('/analytics/threat-trend');
+    destroyChart('trend');
+    const ctx = document.getElementById('trend-chart').getContext('2d');
+    charts['trend'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: d.labels.map(l => l.slice(5)),
+        datasets: [{
+          label: 'Threats',
+          data: d.data,
+          borderColor: CYAN,
+          backgroundColor: 'rgba(0,229,255,0.08)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: CYAN,
+          pointRadius: 4,
+        }]
+      },
+      options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
+    });
+  } catch(e) { console.error(e); }
+}
+
+async function loadSeverityTimeline() {
+  try {
+    const d = await apiCall('/analytics/severity-timeline');
+    destroyChart('sev');
+    const ctx = document.getElementById('sev-chart').getContext('2d');
+    charts['sev'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: d.labels.map(l => l.slice(5)),
+        datasets: [
+          { label: 'Critical', data: d.critical, backgroundColor: 'rgba(255,61,90,0.7)',  stack: 'sev' },
+          { label: 'High',     data: d.high,     backgroundColor: 'rgba(255,179,0,0.7)', stack: 'sev' },
+          { label: 'Medium',   data: d.medium,   backgroundColor: 'rgba(0,229,255,0.6)', stack: 'sev' },
+          { label: 'Low',      data: d.low,       backgroundColor: 'rgba(0,255,136,0.5)', stack: 'sev' },
+        ]
+      },
+      options: { ...chartDefaults, scales: { ...chartDefaults.scales, x: { ...chartDefaults.scales.x, stacked: true }, y: { ...chartDefaults.scales.y, stacked: true } } }
+    });
+  } catch(e) { console.error(e); }
+}
+
+async function loadRiskHistory() {
+  try {
+    const d = await apiCall('/analytics/risk-history');
+    destroyChart('risk');
+    const ctx = document.getElementById('risk-chart').getContext('2d');
+    const colors = d.scores.map(s => s >= 75 ? RED : s >= 40 ? AMBER : CYAN);
+    charts['risk'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: d.labels.map(l => l.slice(11) || l.slice(0,10)),
+        datasets: [{
+          label: 'Risk Score',
+          data: d.scores,
+          borderColor: AMBER,
+          backgroundColor: 'rgba(255,179,0,0.07)',
+          fill: true, tension: 0.4,
+          pointBackgroundColor: colors,
+          pointRadius: 5,
+        }]
+      },
+      options: {
+        ...chartDefaults,
+        scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, max: 100 } },
+        plugins: { ...chartDefaults.plugins, legend: { display: false } }
+      }
+    });
+  } catch(e) { console.error(e); }
+}
+
+async function loadTopIPs() {
+  try {
+    const d   = await apiCall('/analytics/top-ips');
+    const wrap = document.getElementById('ip-bars');
+    if (!d.ips.length) { wrap.innerHTML = '<div class="empty-state" style="padding:20px">No IP data yet. Upload logs first.</div>'; return; }
+    const max = Math.max(...d.counts, 1);
+    wrap.innerHTML = d.ips.map((ip, i) => `
+      <div class="ip-bar-row">
+        <div class="ip-label" title="${ip}">${ip}</div>
+        <div class="ip-bar-wrap">
+          <div class="ip-bar-fill ${d.sevs[i]}" style="width:${(d.counts[i]/max*100).toFixed(0)}%">${d.counts[i]}</div>
+        </div>
+        <div class="ip-count">${d.counts[i]}</div>
+      </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function loadHeatmap() {
+  try {
+    const d    = await apiCall('/analytics/attack-heatmap');
+    const wrap = document.getElementById('heatmap-wrap');
+    const types = d.attack_types;
+    const matrix = d.matrix;
+    const allVals = types.flatMap(t => matrix[t]);
+    const maxVal  = Math.max(...allVals, 1);
+
+    const hourLabels = Array.from({length: 24}, (_, i) => `${String(i).padStart(2,'0')}`);
+
+    let html = `<table class="heatmap-table">
+      <thead><tr><th></th>${hourLabels.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>`;
+
+    types.forEach(type => {
+      html += `<tr><td class="heatmap-row-label">${type}</td>`;
+      for (let h = 0; h < 24; h++) {
+        const val     = matrix[type][h] || 0;
+        const opacity = val > 0 ? 0.15 + (val / maxVal) * 0.85 : 0;
+        const bg      = val > 0 ? `rgba(0,229,255,${opacity.toFixed(2)})` : 'rgba(26,45,74,0.3)';
+        html += `<td style="background:${bg};color:${val>0?'#fff':'transparent'}" title="${type} at ${h}:00 — ${val} events">${val||''}</td>`;
+      }
+      html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+  } catch(e) { console.error(e); }
+}
+
+async function loadDoughnuts() {
+  try {
+    const summary = await getThreatsSummary();
+    const b = summary.severity_breakdown || {};
+    const at = summary.attack_types || {};
+
+    // Attack type doughnut
+    destroyChart('atk-donut');
+    if (Object.keys(at).length) {
+      const ctx1 = document.getElementById('attack-doughnut').getContext('2d');
+      charts['atk-donut'] = new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(at),
+          datasets: [{ data: Object.values(at),
+            backgroundColor: ['rgba(255,61,90,0.7)','rgba(255,179,0,0.7)','rgba(0,229,255,0.7)','rgba(0,255,136,0.6)','rgba(160,130,250,0.7)','rgba(255,120,50,0.7)'],
+            borderColor: 'rgba(11,22,40,0.5)', borderWidth: 2 }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: TICK, font: { family: 'Space Mono', size: 10 }, boxWidth: 12 } } } }
+      });
+    }
+
+    // Severity doughnut
+    destroyChart('sev-donut');
+    const sevVals = [b.critical||0, b.high||0, b.medium||0, b.low||0];
+    if (sevVals.some(v => v > 0)) {
+      const ctx2 = document.getElementById('sev-doughnut').getContext('2d');
+      charts['sev-donut'] = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: ['Critical', 'High', 'Medium', 'Low'],
+          datasets: [{ data: sevVals,
+            backgroundColor: ['rgba(255,61,90,0.8)','rgba(255,179,0,0.8)','rgba(0,229,255,0.7)','rgba(0,255,136,0.6)'],
+            borderColor: 'rgba(11,22,40,0.5)', borderWidth: 2 }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: TICK, font: { family: 'Space Mono', size: 10 }, boxWidth: 12 } } } }
+      });
+    }
+  } catch(e) { console.error(e); }
+}
+
+loadAll();
+</script>
+</body>
+</html>

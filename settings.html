@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberAI Shield — Settings</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+.settings-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+.settings-nav { display: flex; flex-direction: column; gap: 2px; }
+.settings-nav-item {
+  padding: 9px 14px; border-radius: var(--radius); cursor: pointer;
+  font-size: 13px; color: var(--text-sec); border: none; background: none;
+  display: flex; align-items: center; gap: 10px; text-align: left; transition: all 0.15s;
+}
+.settings-nav-item:hover { background: var(--bg-hover); color: var(--text-pri); }
+.settings-nav-item.active { background: rgba(0,229,255,0.08); color: var(--cyan); }
+.settings-panel { display: none; }
+.settings-panel.active { display: block; }
+.panel-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.panel-sub { color: var(--text-sec); font-size: 13px; margin-bottom: 22px; }
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid rgba(26,45,74,0.5);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 13px; font-weight: 500; color: var(--text-pri); margin-bottom: 2px; }
+.setting-desc  { font-size: 11px; color: var(--text-mute); }
+.toggle {
+  position: relative; width: 42px; height: 22px;
+  background: var(--bg-hover); border: 1px solid var(--border);
+  border-radius: 11px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+}
+.toggle.on { background: rgba(0,229,255,0.2); border-color: rgba(0,229,255,0.4); }
+.toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--text-mute); transition: all 0.2s;
+}
+.toggle.on::after { left: 22px; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.profile-avatar-large {
+  width: 72px; height: 72px; border-radius: 18px;
+  background: linear-gradient(135deg, var(--cyan) 0%, #0077aa 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 700; color: var(--bg-deep);
+  box-shadow: 0 0 20px rgba(0,229,255,0.3); flex-shrink: 0;
+}
+.role-card {
+  padding: 14px; border-radius: var(--radius);
+  background: var(--bg-card); border: 1px solid var(--border);
+  text-align: center; transition: all 0.2s;
+}
+.role-card.selected { border-color: rgba(0,229,255,0.4); background: rgba(0,229,255,0.05); }
+.role-icon { font-size: 24px; margin-bottom: 8px; }
+.role-name { font-size: 13px; font-weight: 600; color: var(--text-pri); margin-bottom: 4px; }
+.role-perm { font-size: 10px; color: var(--text-mute); font-family: var(--font-mono); }
+.health-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px;
+}
+.health-val.ok      { color: var(--green); font-family: var(--font-mono); font-size: 12px; }
+.health-val.missing { color: var(--red);   font-family: var(--font-mono); font-size: 12px; }
+.health-val.partial { color: var(--amber); font-family: var(--font-mono); font-size: 12px; }
+.save-success {
+  background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 12px; color: var(--green); margin-bottom: 14px; display: none;
+}
+.save-error {
+  background: rgba(255,61,90,0.1); border: 1px solid rgba(255,61,90,0.3);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 12px; color: var(--red); margin-bottom: 14px; display: none;
+}
+.eye-icon {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; color: var(--text-mute); cursor: pointer;
+  user-select: none; transition: color 0.2s;
+}
+.eye-icon:hover { color: var(--cyan); }
+.input-with-eye { position: relative; }
+.input-with-eye input { padding-right: 40px !important; }
+.user-row-admin {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0; flex-wrap: wrap;
+}
+</style>
+</head>
+<body class="page-settings">
+<div class="app-layout" id="app-layout">
+  <div class="main-area">
+    <div class="page-content">
+
+      <div class="page-header">
+        <h1>Settings</h1>
+        <p>Configure your account, team access, ML models, and system health</p>
+      </div>
+
+      <div class="settings-layout">
+        <div class="settings-nav">
+          <button class="settings-nav-item active" onclick="showPanel('profile',this)">👤 Profile</button>
+          <button class="settings-nav-item" onclick="showPanel('users',this)">👥 Users & Roles</button>
+          <button class="settings-nav-item" onclick="showPanel('ml',this)">🤖 ML / AI</button>
+          <button class="settings-nav-item" onclick="showPanel('system',this)">💻 System Health</button>
+        </div>
+
+        <div>
+
+          <!-- ── Profile ── -->
+          <div class="settings-panel active" id="panel-profile">
+            <div class="panel-title">Profile Settings</div>
+            <div class="panel-sub">Update your display name and account details.</div>
+
+            <div class="save-success" id="profile-success">✅ Profile updated successfully!</div>
+            <div class="save-error"   id="profile-error"></div>
+
+            <div style="display:flex;align-items:center;gap:18px;padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:22px">
+              <div class="profile-avatar-large" id="avatar-preview-large">S</div>
+              <div style="flex:1">
+                <div style="font-size:20px;font-weight:700;font-family:var(--font-head)" id="preview-name">User</div>
+                <div style="font-size:12px;color:var(--text-sec);margin-top:2px" id="preview-email"></div>
+                <div style="margin-top:8px">
+                  <span class="pill pill-medium" id="preview-role">analyst</span>
+                </div>
+              </div>
+              <button class="btn btn-outline" style="font-size:12px" onclick="logout()">⏻ Logout</button>
+            </div>
+
+            <div class="card">
+              <div class="form-group">
+                <label class="form-label">Display Name</label>
+                <input class="form-input" id="edit-name" placeholder="Your full name"
+                       oninput="previewName(this.value)">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input class="form-input" id="edit-email" type="email"
+                       readonly style="opacity:0.6;cursor:not-allowed">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Department</label>
+                <input class="form-input" id="edit-dept" placeholder="Security Operations">
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  New Password
+                  <span style="color:var(--text-mute);font-weight:400">(leave blank to keep current)</span>
+                </label>
+                <div class="input-with-eye">
+                  <input class="form-input" type="password" id="edit-password"
+                         placeholder="Min 6 characters">
+                  <span class="eye-icon" onclick="togglePw('edit-password','eye-settings')">
+                    <span id="eye-settings">👁️</span>
+                  </span>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="saveProfile()">💾 Save Changes</button>
+            </div>
+          </div>
+
+          <!-- ── Users & Roles ── -->
+          <div class="settings-panel" id="panel-users">
+            <div class="panel-title">Users & Role-Based Access</div>
+            <div class="panel-sub">All registered accounts and their permission levels.</div>
+
+            <div class="grid-3" style="margin-bottom:22px">
+              <div class="role-card selected">
+                <div class="role-icon">🔍</div>
+                <div class="role-name">Analyst</div>
+                <div class="role-perm">Upload · Detect · Reports · Chat</div>
+              </div>
+              <div class="role-card">
+                <div class="role-icon">⚙️</div>
+                <div class="role-name">Admin</div>
+                <div class="role-perm">Full Access · Manage Users</div>
+              </div>
+              <div class="role-card">
+                <div class="role-icon">👁️</div>
+                <div class="role-name">Viewer</div>
+                <div class="role-perm">Read-Only · Dashboard Only</div>
+              </div>
+            </div>
+
+            <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Last Login</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-body">
+                  <tr>
+                    <td colspan="5" style="text-align:center;color:var(--text-mute);padding:20px">
+                      Loading users...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <a href="signup.html" class="btn btn-primary">+ Invite New User</a>
+          </div>
+
+          <!-- ── ML / AI ── -->
+          <div class="settings-panel" id="panel-ml">
+            <div class="panel-title">ML / AI Configuration</div>
+            <div class="panel-sub">Tune the Isolation Forest model, SHAP, and Groq LLM settings.</div>
+            <div class="card">
+              <div class="setting-row">
+                <div>
+                  <div class="setting-label">Isolation Forest Model</div>
+                  <div class="setting-desc">Primary anomaly detection engine</div>
+                </div>
+                <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <div class="setting-label">SHAP Explainability</div>
+                  <div class="setting-desc">Explain WHY each threat was flagged</div>
+                </div>
+                <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <div class="setting-label">Auto-retrain on Upload</div>
+                  <div class="setting-desc">Update model baseline with every log upload</div>
+                </div>
+                <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <div class="setting-label">Groq LLM Reports</div>
+                  <div class="setting-desc">Use AI to write incident summaries</div>
+                </div>
+                <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+              </div>
+              <div style="margin-top:18px">
+                <label class="form-label">Anomaly Sensitivity</label>
+                <input type="range" min="0" max="100" value="30"
+                       style="width:100%;accent-color:var(--cyan)"
+                       oninput="document.getElementById('thresh-val').textContent=(this.value/100).toFixed(2)">
+                <div style="font-size:12px;color:var(--cyan);font-family:var(--font-mono);margin-top:4px">
+                  Threshold: <span id="thresh-val">0.30</span>
+                  <span style="color:var(--text-mute);margin-left:8px">(lower = more sensitive)</span>
+                </div>
+              </div>
+              <div style="margin-top:16px">
+                <label class="form-label">Groq Model</label>
+                <select class="form-input form-select">
+                  <option selected>llama-3.3-70b-versatile</option>
+                  <option>llama3-8b-8192</option>
+                  <option>mixtral-8x7b-32768</option>
+                  <option>gemma2-9b-it</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" style="margin-top:16px"
+                      onclick="alert('ML config saved!')">💾 Save Config</button>
+            </div>
+          </div>
+
+          <!-- ── System Health ── -->
+          <div class="settings-panel" id="panel-system">
+            <div class="panel-title">System Health</div>
+            <div class="panel-sub">Live status of all backend services.</div>
+            <div id="health-data">
+              <div class="empty-state">Loading...</div>
+            </div>
+            <button class="btn btn-outline" style="margin-top:14px"
+                    onclick="loadHealth()">↻ Refresh</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">⬆ Upload Logs</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-outline" onclick="closeUpload()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/layout.js"></script>
+<script>
+requireAuth();
+buildLayout('settings');
+
+// Load current user into profile
+const user = getUser();
+if (user) {
+    document.getElementById('avatar-preview-large').textContent = user.avatar || (user.name ? user.name[0].toUpperCase() : 'U');
+    document.getElementById('preview-name').textContent         = user.name   || 'User';
+    document.getElementById('preview-email').textContent        = user.email  || '';
+    document.getElementById('preview-role').textContent         = user.role   || 'analyst';
+    document.getElementById('edit-name').value                  = user.name   || '';
+    document.getElementById('edit-email').value                 = user.email  || '';
+}
+
+function previewName(val) {
+    if (val.trim()) {
+        document.getElementById('avatar-preview-large').textContent = val[0].toUpperCase();
+        document.getElementById('preview-name').textContent         = val;
+    }
+}
+
+function togglePw(inputId, eyeSpanId) {
+    const input = document.getElementById(inputId);
+    const eye   = document.getElementById(eyeSpanId);
+    if (input.type === 'password') {
+        input.type      = 'text';
+        eye.textContent = '🙈';
+    } else {
+        input.type      = 'password';
+        eye.textContent = '👁️';
+    }
+}
+
+async function saveProfile() {
+    const name       = document.getElementById('edit-name').value.trim();
+    const dept       = document.getElementById('edit-dept').value.trim();
+    const successEl  = document.getElementById('profile-success');
+    const errorEl    = document.getElementById('profile-error');
+
+    successEl.style.display = 'none';
+    errorEl.style.display   = 'none';
+
+    if (!name) {
+        errorEl.textContent   = 'Please enter a display name';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    try {
+        await updateProfile(name, dept);
+
+        // Update localStorage immediately
+        const u    = getUser();
+        u.name     = name;
+        u.avatar   = name[0].toUpperCase();
+        setUser(u);
+
+        // Update preview
+        document.getElementById('avatar-preview-large').textContent = name[0].toUpperCase();
+        document.getElementById('preview-name').textContent         = name;
+
+        successEl.style.display = 'block';
+        setTimeout(() => {
+            successEl.style.display = 'none';
+            window.location.reload();
+        }, 1200);
+
+    } catch(e) {
+        errorEl.textContent   = 'Save failed: ' + e.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+function showPanel(id, btn) {
+    document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    btn.classList.add('active');
+    if (id === 'system') loadHealth();
+    if (id === 'users')  loadUsers();
+}
+
+async function loadUsers() {
+    try {
+        const users       = await apiCall('/auth/users');
+        const currentUser = getUser();
+        const roleClass   = {
+            analyst: 'pill-medium',
+            admin:   'pill-info',
+            viewer:  'pill-high',
+        };
+
+        document.getElementById('users-table-body').innerHTML = users.map(u => `
+            <tr>
+                <td class="highlight">
+                    ${u.name}
+                    ${u.email === currentUser.email
+                        ? '<span style="font-size:10px;color:var(--cyan);margin-left:6px">(You)</span>'
+                        : ''}
+                </td>
+                <td class="mono">${u.email}</td>
+                <td>
+                    <span class="pill ${roleClass[u.role] || 'pill-low'}">
+                        ${u.role.toUpperCase()}
+                    </span>
+                </td>
+                <td class="mono" style="font-size:11px">
+                    ${u.last_login && u.last_login !== 'Never'
+                        ? new Date(u.last_login).toLocaleString()
+                        : 'Never'}
+                </td>
+                <td>
+                    <span class="pill ${u.is_active ? 'pill-low' : 'pill-critical'}">
+                        ${u.is_active ? 'Active' : 'Disabled'}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
+
+    } catch(e) {
+        document.getElementById('users-table-body').innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center;color:var(--text-mute);padding:20px">
+                    Could not load users
+                </td>
+            </tr>`;
+    }
+}
+
+async function loadHealth() {
+    try {
+        const data        = await getHealth();
+        const statusClass = v =>
+            v === 'healthy' || v === 'loaded' || v === 'configured' ? 'ok' :
+            v === 'not_loaded'      ? 'partial' :
+            v === 'not_configured'  ? 'partial' : 'missing';
+        const statusText = v =>
+            v === 'healthy'          ? '● Healthy'          :
+            v === 'loaded'           ? '● Loaded'           :
+            v === 'configured'       ? '● Configured'       :
+            v === 'not_loaded'       ? '● Not Loaded'       :
+            v === 'not_configured'   ? '● Not Configured'   : '● ' + v;
+
+        document.getElementById('health-data').innerHTML = `
+          <div class="health-row">
+            <span>API Server</span>
+            <span class="health-val ok">● Online</span>
+          </div>
+          <div class="health-row">
+            <span>ML Model (Isolation Forest)</span>
+            <span class="health-val ${statusClass(data.ml_model)}">
+              ${statusText(data.ml_model)}
+            </span>
+          </div>
+          <div class="health-row">
+            <span>Groq LLM API</span>
+            <span class="health-val ${statusClass(data.groq_api)}">
+              ${statusText(data.groq_api)}
+            </span>
+          </div>
+          <div class="health-row">
+            <span>SIEM Integration</span>
+            <span class="health-val ${data.siem === 'configured' ? 'ok' : 'partial'}">
+              ${data.siem === 'configured' ? '● Configured' : '● Not Configured'}
+            </span>
+          </div>
+          <div class="health-row">
+            <span>Database (SQLite)</span>
+            <span class="health-val ok">● Connected</span>
+          </div>
+          <div class="health-row">
+            <span>Backend URL</span>
+            <span class="health-val ok" style="font-size:11px;font-family:var(--font-mono)">
+              http://localhost:8000
+            </span>
+          </div>`;
+
+    } catch(e) {
+        document.getElementById('health-data').innerHTML = `
+          <div class="health-row">
+            <span>API Server</span>
+            <span class="health-val missing">● Offline — Start uvicorn first</span>
+          </div>`;
+    }
+}
+
+// Load health on page open
+loadHealth();
+</script>
+</body>
+</html>

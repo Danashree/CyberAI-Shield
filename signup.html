@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberAI Shield — Create Account</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+body { display: flex; align-items: stretch; min-height: 100vh; overflow: hidden; }
+.login-wrap { display: flex; width: 100%; min-height: 100vh; position: relative; z-index: 1; }
+.login-left {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #060d1a 0%, #0a1a30 50%, #06101f 100%);
+  position: relative; overflow: hidden; padding: 48px;
+}
+.login-left::before {
+  content: ''; position: absolute; top: -30%; left: -30%; width: 80%; height: 80%;
+  background: radial-gradient(ellipse, rgba(0,229,255,0.07) 0%, transparent 70%); border-radius: 50%;
+}
+.star-dots {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 38% 8%,  rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 62% 28%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 22% 55%, rgba(0,229,255,0.7)   0%, transparent 100%),
+    radial-gradient(1px 1px at 74% 65%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(2px 2px at 30% 35%, rgba(0,229,255,0.6)   0%, transparent 100%);
+}
+.shield-wrap { position: relative; width: 130px; height: 130px; margin-bottom: 28px; }
+.shield-ring {
+  width: 100%; height: 100%; border-radius: 50%;
+  border: 1.5px solid rgba(0,229,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  animation: ring-pulse 3s ease-in-out infinite;
+}
+@keyframes ring-pulse {
+  0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,0)}
+  50%{box-shadow:0 0 30px 4px rgba(0,229,255,0.08)}
+}
+.shield-icon {
+  width: 68px; height: 68px;
+  background: linear-gradient(135deg, var(--cyan) 0%, #0077aa 100%);
+  border-radius: 16px; display: flex; align-items: center; justify-content: center;
+  font-size: 30px; box-shadow: 0 0 40px rgba(0,229,255,0.4);
+}
+.login-brand { text-align: center; margin-bottom: 28px; position: relative; z-index: 1; }
+.login-brand h1 { font-family: var(--font-head); font-size: 34px; font-weight: 700; }
+.login-brand h1 span { color: var(--cyan); }
+.login-brand p { color: var(--text-sec); font-size: 13px; max-width: 300px; margin-top: 8px; }
+.features { display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 1; }
+.feature-item {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(0,229,255,0.05); border: 1px solid rgba(0,229,255,0.1);
+  border-radius: var(--radius); padding: 10px 14px;
+}
+.feature-icon { font-size: 18px; flex-shrink: 0; }
+.feature-text { font-size: 12px; color: var(--text-sec); }
+.feature-text strong { color: var(--text-pri); }
+
+.login-right {
+  width: 500px; flex-shrink: 0; background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px; position: relative; overflow-y: auto;
+}
+.login-form-wrap { width: 100%; max-width: 380px; }
+.login-form-wrap h2 { font-family: var(--font-head); font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+.login-form-wrap .sub { color: var(--text-sec); font-size: 13px; margin-bottom: 22px; }
+
+.input-group { position: relative; margin-bottom: 14px; }
+.input-group .input-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; color: var(--text-mute); pointer-events: none;
+}
+.input-group .eye-icon {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; color: var(--text-mute); cursor: pointer;
+  user-select: none; transition: color 0.2s;
+}
+.input-group .eye-icon:hover { color: var(--cyan); }
+.input-group input, .input-group select {
+  width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-pri);
+  font-size: 14px; font-family: var(--font-body);
+  padding: 11px 40px 11px 38px; outline: none; transition: all 0.2s; appearance: none;
+}
+.input-group input:focus, .input-group select:focus {
+  border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,229,255,0.1);
+}
+.input-group input::placeholder { color: var(--text-mute); }
+
+.password-strength { height: 3px; border-radius: 2px; margin-top: 5px; background: var(--border); overflow: hidden; }
+.strength-fill { height: 100%; border-radius: 2px; transition: all 0.3s; width: 0%; }
+.strength-label { font-size: 10px; font-family: var(--font-mono); margin-top: 3px; }
+
+.avatar-preview-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 14px;
+}
+.avatar-preview-sm {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan) 0%, #0077aa 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: var(--bg-deep); flex-shrink: 0;
+}
+
+.btn-signup {
+  width: 100%; padding: 13px; border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--cyan) 0%, var(--cyan-dim) 100%);
+  color: var(--bg-deep); font-size: 15px; font-weight: 700;
+  font-family: var(--font-head); letter-spacing: 1px;
+  border: none; cursor: pointer; transition: all 0.25s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 16px; margin-top: 8px;
+}
+.btn-signup:hover { box-shadow: 0 0 28px rgba(0,229,255,0.4); transform: translateY(-1px); }
+.btn-signup:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.error-msg {
+  background: rgba(255,61,90,0.1); border: 1px solid rgba(255,61,90,0.3);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 12px; color: var(--red); margin-bottom: 14px; display: none;
+}
+.success-msg {
+  background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 12px; color: var(--green); margin-bottom: 14px; display: none;
+}
+.signin-row { text-align: center; font-size: 12px; color: var(--text-sec); }
+.signin-row a { color: var(--cyan); text-decoration: none; font-weight: 600; }
+.terms { font-size: 11px; color: var(--text-mute); text-align: center; margin-top: 10px; }
+.terms a { color: var(--text-sec); }
+</style>
+</head>
+<body>
+<div class="starfield"></div>
+<div class="login-wrap">
+
+  <div class="login-left">
+    <div class="star-dots"></div>
+    <div class="shield-wrap" style="position:relative;z-index:1">
+      <div class="shield-ring"><div class="shield-icon">🛡️</div></div>
+    </div>
+    <div class="login-brand">
+      <h1>CyberAI <span>Shield</span></h1>
+      <p>Join the next generation of AI-powered cybersecurity defense.</p>
+    </div>
+    <div class="features">
+      <div class="feature-item">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-text"><strong>ML Detection</strong> — Isolation Forest anomaly detection</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-text"><strong>SHAP Explainability</strong> — Know WHY threats are flagged</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📄</div>
+        <div class="feature-text"><strong>AI Reports</strong> — Groq LLM incident summaries</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">💬</div>
+        <div class="feature-text"><strong>SOC Chatbot</strong> — Ask anything about your threats</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-form-wrap">
+      <h2>Create Account</h2>
+      <p class="sub">Start protecting your infrastructure today.</p>
+
+      <div class="error-msg"   id="error-msg"></div>
+      <div class="success-msg" id="success-msg"></div>
+
+      <!-- Avatar preview -->
+      <div class="avatar-preview-row">
+        <div class="avatar-preview-sm" id="avatar-preview">?</div>
+        <div>
+          <div style="font-size:13px;color:var(--text-pri);font-weight:500" id="preview-name">Your display name</div>
+          <div style="font-size:10px;color:var(--text-mute);font-family:var(--font-mono)" id="preview-role-label">analyst</div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <span class="input-icon">👤</span>
+        <input type="text" id="name" placeholder="Full name" oninput="updatePreview()">
+      </div>
+
+      <div class="input-group">
+        <span class="input-icon">✉️</span>
+        <input type="email" id="email" placeholder="name@company.com">
+      </div>
+
+      <div class="input-group">
+        <span class="input-icon">🔒</span>
+        <input type="password" id="password" placeholder="Password (min 6 chars)" oninput="checkStrength()">
+        <span class="eye-icon" onclick="togglePw('password','eye1')" id="eye1">👁️</span>
+        <div class="password-strength">
+          <div class="strength-fill" id="strength-fill"></div>
+        </div>
+        <div class="strength-label" id="strength-label" style="color:var(--text-mute)"></div>
+      </div>
+
+      <div class="input-group">
+        <span class="input-icon">🔒</span>
+        <input type="password" id="confirm-password" placeholder="Confirm password">
+        <span class="eye-icon" onclick="togglePw('confirm-password','eye2')" id="eye2">👁️</span>
+      </div>
+
+      <div class="input-group">
+        <span class="input-icon">👥</span>
+        <select id="role" onchange="updatePreview()">
+          <option value="analyst">Analyst — Upload, detect, reports, chat</option>
+          <option value="admin">Admin — Full access + user management</option>
+          <option value="viewer">Viewer — Read-only dashboard</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <span class="input-icon">🏢</span>
+        <input type="text" id="department" placeholder="Department (optional)">
+      </div>
+
+      <button class="btn-signup" id="signup-btn" onclick="doRegister()">
+        Create Account <span>→</span>
+      </button>
+
+      <p class="signin-row">Already have an account? <a href="login.html">Sign In</a></p>
+      <p class="terms">By signing up you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a></p>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+if (getToken()) window.location.href = 'dashboard.html';
+
+function updatePreview() {
+    const name = document.getElementById('name').value;
+    const role = document.getElementById('role').value;
+    document.getElementById('avatar-preview').textContent    = name ? name[0].toUpperCase() : '?';
+    document.getElementById('preview-name').textContent      = name || 'Your display name';
+    document.getElementById('preview-role-label').textContent = role;
+}
+
+function togglePw(inputId, eyeId) {
+    const input = document.getElementById(inputId);
+    const eye   = document.getElementById(eyeId);
+    if (input.type === 'password') {
+        input.type      = 'text';
+        eye.textContent = '🙈';
+    } else {
+        input.type      = 'password';
+        eye.textContent = '👁️';
+    }
+}
+
+function checkStrength() {
+    const pw    = document.getElementById('password').value;
+    const fill  = document.getElementById('strength-fill');
+    const label = document.getElementById('strength-label');
+    let score   = 0;
+    if (pw.length >= 6)           score++;
+    if (pw.length >= 10)          score++;
+    if (/[A-Z]/.test(pw))         score++;
+    if (/[0-9]/.test(pw))         score++;
+    if (/[^A-Za-z0-9]/.test(pw))  score++;
+
+    const configs = [
+        { w: '0%',   color: '',                    text: '' },
+        { w: '20%',  color: 'var(--red)',           text: 'Weak' },
+        { w: '40%',  color: 'var(--red)',           text: 'Weak' },
+        { w: '60%',  color: 'var(--amber)',         text: 'Fair' },
+        { w: '80%',  color: 'var(--cyan)',          text: 'Good' },
+        { w: '100%', color: 'var(--green)',         text: 'Strong' },
+    ];
+    fill.style.width      = configs[score].w;
+    fill.style.background = configs[score].color;
+    label.textContent     = configs[score].text;
+    label.style.color     = configs[score].color;
+}
+
+async function doRegister() {
+    const name       = document.getElementById('name').value.trim();
+    const email      = document.getElementById('email').value.trim();
+    const password   = document.getElementById('password').value;
+    const confirm    = document.getElementById('confirm-password').value;
+    const role       = document.getElementById('role').value;
+    const department = document.getElementById('department').value.trim();
+    const btn        = document.getElementById('signup-btn');
+    const errDiv     = document.getElementById('error-msg');
+    const okDiv      = document.getElementById('success-msg');
+
+    errDiv.style.display = 'none';
+    okDiv.style.display  = 'none';
+
+    if (!name)               { showError('Please enter your full name'); return; }
+    if (!email)              { showError('Please enter your email'); return; }
+    if (password.length < 6) { showError('Password must be at least 6 characters'); return; }
+    if (password !== confirm) { showError('Passwords do not match'); return; }
+
+    btn.disabled    = true;
+    btn.textContent = 'Creating account...';
+
+    try {
+        await register(name, email, password, role, department);
+        okDiv.textContent   = '✅ Account created! Redirecting...';
+        okDiv.style.display = 'block';
+        setTimeout(() => window.location.href = 'dashboard.html', 1500);
+    } catch(e) {
+        showError(e.message || 'Registration failed. Email may already be registered.');
+        btn.disabled  = false;
+        btn.innerHTML = 'Create Account <span>→</span>';
+    }
+}
+
+function showError(msg) {
+    const errDiv        = document.getElementById('error-msg');
+    errDiv.textContent  = msg;
+    errDiv.style.display = 'block';
+}
+
+document.getElementById('confirm-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doRegister();
+});
+</script>
+</body>
+</html>

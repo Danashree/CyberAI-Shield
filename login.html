@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberAI Shield — Sign In</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+body { display: flex; align-items: stretch; min-height: 100vh; overflow: hidden; }
+.login-wrap { display: flex; width: 100%; min-height: 100vh; position: relative; z-index: 1; }
+.login-left {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #060d1a 0%, #0a1a30 50%, #06101f 100%);
+  position: relative; overflow: hidden; padding: 48px;
+}
+.login-left::before {
+  content: ''; position: absolute; top: -30%; left: -30%; width: 80%; height: 80%;
+  background: radial-gradient(ellipse, rgba(0,229,255,0.07) 0%, transparent 70%); border-radius: 50%;
+}
+.star-dots {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 38% 8%,  rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 62% 28%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 82% 12%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 22% 55%, rgba(0,229,255,0.7)   0%, transparent 100%),
+    radial-gradient(1px 1px at 74% 65%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 44% 82%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 42%, rgba(0,229,255,0.5)   0%, transparent 100%),
+    radial-gradient(2px 2px at 30% 35%, rgba(0,229,255,0.6)   0%, transparent 100%),
+    radial-gradient(2px 2px at 70% 88%, rgba(0,229,255,0.4)   0%, transparent 100%);
+}
+.shield-wrap { position: relative; width: 160px; height: 160px; margin-bottom: 36px; }
+.shield-ring {
+  width: 100%; height: 100%; border-radius: 50%;
+  border: 1.5px solid rgba(0,229,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  animation: ring-pulse 3s ease-in-out infinite;
+}
+.shield-ring::before {
+  content: ''; position: absolute; inset: -12px; border-radius: 50%;
+  border: 1px solid rgba(0,229,255,0.12);
+  animation: ring-pulse 3s ease-in-out infinite 0.5s;
+}
+@keyframes ring-pulse {
+  0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,0)}
+  50%{box-shadow:0 0 30px 4px rgba(0,229,255,0.08)}
+}
+.shield-icon {
+  width: 80px; height: 80px;
+  background: linear-gradient(135deg, var(--cyan) 0%, #0077aa 100%);
+  border-radius: 18px; display: flex; align-items: center; justify-content: center;
+  font-size: 36px; box-shadow: 0 0 40px rgba(0,229,255,0.4), 0 8px 24px rgba(0,0,0,0.4);
+}
+.login-brand { text-align: center; margin-bottom: 40px; position: relative; z-index: 1; }
+.login-brand h1 { font-family: var(--font-head); font-size: 38px; font-weight: 700; }
+.login-brand h1 span { color: var(--cyan); }
+.login-brand p { color: var(--text-sec); font-size: 14px; max-width: 320px; margin-top: 8px; }
+.login-stats { display: flex; gap: 16px; position: relative; z-index: 1; }
+.login-stat {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(0,229,255,0.15);
+  border-radius: var(--radius); padding: 16px 20px; text-align: center; min-width: 120px;
+}
+.login-stat .stat-n { font-family: var(--font-head); font-size: 24px; font-weight: 700; color: var(--cyan); }
+.login-stat .stat-l { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-mute); font-family: var(--font-mono); }
+.login-right {
+  width: 480px; flex-shrink: 0; background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 40px; position: relative;
+}
+.login-form-wrap { width: 100%; max-width: 360px; }
+.login-form-wrap h2 { font-family: var(--font-head); font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+.login-form-wrap .sub { color: var(--text-sec); font-size: 13px; margin-bottom: 28px; }
+.role-tabs {
+  display: flex; gap: 4px; margin-bottom: 22px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 4px;
+}
+.role-tab {
+  flex: 1; padding: 6px 8px; border-radius: 5px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.5px;
+  font-family: var(--font-mono); color: var(--text-mute);
+  cursor: pointer; border: none; background: none;
+  transition: all 0.2s; text-transform: uppercase;
+}
+.role-tab.active { background: rgba(0,229,255,0.1); color: var(--cyan); }
+.input-group { position: relative; margin-bottom: 16px; }
+.input-group .input-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; color: var(--text-mute); pointer-events: none;
+}
+.input-group .eye-icon {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; color: var(--text-mute); cursor: pointer;
+  user-select: none; transition: color 0.2s;
+}
+.input-group .eye-icon:hover { color: var(--cyan); }
+.input-group input {
+  width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-pri);
+  font-size: 14px; font-family: var(--font-body);
+  padding: 12px 40px 12px 38px; outline: none; transition: all 0.2s;
+}
+.input-group input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,229,255,0.1); }
+.input-group input::placeholder { color: var(--text-mute); }
+.btn-signin {
+  width: 100%; padding: 13px; border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--cyan) 0%, var(--cyan-dim) 100%);
+  color: var(--bg-deep); font-size: 15px; font-weight: 700;
+  font-family: var(--font-head); letter-spacing: 1px;
+  border: none; cursor: pointer; transition: all 0.25s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 22px; margin-top: 8px;
+}
+.btn-signin:hover { box-shadow: 0 0 28px rgba(0,229,255,0.4); transform: translateY(-1px); }
+.btn-signin:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.divider { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.divider span { font-size: 11px; color: var(--text-mute); font-family: var(--font-mono); white-space: nowrap; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.oauth-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+.oauth-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px; border-radius: var(--radius);
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-sec); font-size: 13px; cursor: pointer; transition: all 0.2s; text-decoration: none;
+}
+.oauth-btn:hover { border-color: var(--border-lit); color: var(--text-pri); }
+.signup-row { text-align: center; font-size: 12px; color: var(--text-sec); }
+.signup-row a { color: var(--cyan); text-decoration: none; font-weight: 600; }
+.error-msg {
+  background: rgba(255,61,90,0.1); border: 1px solid rgba(255,61,90,0.3);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 12px; color: var(--red); margin-bottom: 14px; display: none;
+}
+.login-footer {
+  position: absolute; bottom: 20px; left: 0; right: 0;
+  text-align: center; font-size: 11px; color: var(--text-mute);
+  display: flex; gap: 16px; justify-content: center;
+}
+.login-footer a { color: var(--text-mute); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="starfield"></div>
+<div class="login-wrap">
+
+  <div class="login-left">
+    <div class="star-dots"></div>
+    <div class="shield-wrap" style="position:relative;z-index:1">
+      <div class="shield-ring"><div class="shield-icon">🛡️</div></div>
+    </div>
+    <div class="login-brand">
+      <h1>CyberAI <span>Shield</span></h1>
+      <p>Protecting your digital assets with advanced neural network analysis and real-time threat neutralization.</p>
+    </div>
+    <div class="login-stats">
+      <div class="login-stat">
+        <div class="stat-n">99.9%</div>
+        <div class="stat-l">Detection Rate</div>
+      </div>
+      <div class="login-stat">
+        <div class="stat-n">24/7</div>
+        <div class="stat-l">AI Monitoring</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-form-wrap">
+      <h2>Welcome Back</h2>
+      <p class="sub">Access your secure dashboard to manage defenses.</p>
+
+      <div class="role-tabs">
+        <button class="role-tab active" onclick="setRole(this,'analyst@cyberai.com')">Analyst</button>
+        <button class="role-tab" onclick="setRole(this,'admin@cyberai.com')">Admin</button>
+        <button class="role-tab" onclick="setRole(this,'viewer@cyberai.com')">Viewer</button>
+      </div>
+
+      <div class="error-msg" id="error-msg"></div>
+
+      <div class="form-group">
+        <div class="input-group">
+          <span class="input-icon">✉️</span>
+          <input type="email" id="email" placeholder="name@company.com">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label style="font-size:12px;color:var(--text-sec);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">Password</label>
+        <div class="input-group" style="margin-bottom:0">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="password" placeholder="••••••••">
+          <span class="eye-icon" onclick="togglePassword('password','eye-login')" id="eye-login">👁️</span>
+        </div>
+      </div>
+
+      <button class="btn-signin" id="signin-btn" onclick="doLogin()">
+        Sign In <span>→</span>
+      </button>
+
+      <div class="divider"><span>OR CONTINUE WITH</span></div>
+      <div class="oauth-btns">
+        <a href="#" class="oauth-btn">🔵 Google</a>
+        <a href="#" class="oauth-btn">⚫ GitHub</a>
+      </div>
+      <p class="signup-row">Don't have an account? <a href="signup.html">Create Account</a></p>
+    </div>
+
+    <div class="login-footer">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#">Support</a>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+if (getToken()) window.location.href = 'dashboard.html';
+
+function setRole(btn, email) {
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('email').value    = email;
+    document.getElementById('password').value = '';
+    document.getElementById('password').focus();
+}
+
+function togglePassword(inputId, eyeId) {
+    const input = document.getElementById(inputId);
+    const eye   = document.getElementById(eyeId);
+    if (input.type === 'password') {
+        input.type    = 'text';
+        eye.textContent = '🙈';
+    } else {
+        input.type    = 'password';
+        eye.textContent = '👁️';
+    }
+}
+
+async function doLogin() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn      = document.getElementById('signin-btn');
+    const errDiv   = document.getElementById('error-msg');
+
+    if (!email || !password) {
+        showError('Please enter your email and password');
+        return;
+    }
+
+    btn.disabled    = true;
+    btn.textContent = 'Signing in...';
+    errDiv.style.display = 'none';
+
+    try {
+        await login(email, password);
+        window.location.href = 'dashboard.html';
+    } catch(e) {
+        showError(e.message || 'Login failed. Check your credentials.');
+        btn.disabled  = false;
+        btn.innerHTML = 'Sign In <span>→</span>';
+    }
+}
+
+function showError(msg) {
+    const errDiv        = document.getElementById('error-msg');
+    errDiv.textContent  = msg;
+    errDiv.style.display = 'block';
+}
+
+document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>

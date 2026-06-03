@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberAI Shield — Alerts Center</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+.alert-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 16px 18px;
+  margin-bottom: 10px; display: flex; align-items: flex-start; gap: 14px;
+  transition: all 0.2s; cursor: pointer;
+}
+.alert-card:hover { border-color: var(--border-lit); background: var(--bg-hover); }
+.alert-card.unread { border-left: 3px solid var(--cyan); }
+.alert-card.unread.critical { border-left-color: var(--red); }
+.alert-card.unread.high     { border-left-color: var(--amber); }
+.alert-icon {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.alert-icon.critical { background: rgba(255,61,90,0.15); }
+.alert-icon.high     { background: rgba(255,179,0,0.15); }
+.alert-icon.medium   { background: rgba(0,229,255,0.1); }
+.alert-icon.low      { background: rgba(0,255,136,0.1); }
+.alert-meta { flex: 1; }
+.alert-title { font-size: 13px; font-weight: 600; color: var(--text-pri); margin-bottom: 3px; }
+.alert-desc  { font-size: 12px; color: var(--text-sec); margin-bottom: 6px; line-height: 1.5; }
+.alert-footer { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.alert-time { font-size: 11px; color: var(--text-mute); font-family: var(--font-mono); }
+.alert-actions { margin-left: auto; display: flex; gap: 6px; }
+.priority-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.priority-badge.P1 { background: rgba(255,61,90,0.2);  color: #ff3d5a; border: 1px solid rgba(255,61,90,0.4); }
+.priority-badge.P2 { background: rgba(255,179,0,0.2);  color: #ffb300; border: 1px solid rgba(255,179,0,0.4); }
+.priority-badge.P3 { background: rgba(0,229,255,0.15); color: #00e5ff; border: 1px solid rgba(0,229,255,0.3); }
+.priority-badge.P4 { background: rgba(0,255,136,0.1);  color: #00ff88; border: 1px solid rgba(0,255,136,0.25); }
+.priority-score-wrap { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.priority-score-bar  { flex: 1; height: 3px; background: var(--bg-hover); border-radius: 2px; overflow: hidden; max-width: 120px; }
+.priority-score-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+.priority-score-num  { font-size: 10px; color: var(--text-mute); font-family: var(--font-mono); white-space: nowrap; }
+.tabs { display: flex; gap: 2px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+.tab {
+  padding: 8px 18px; font-size: 13px; font-weight: 500;
+  cursor: pointer; color: var(--text-mute);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font-family: var(--font-body); background: none;
+  border-top: none; border-left: none; border-right: none; transition: all 0.2s;
+}
+.tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+.tab:hover:not(.active) { color: var(--text-sec); }
+.notif-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--red); font-size: 9px; font-weight: 700;
+  color: #fff; margin-left: 6px; font-family: var(--font-mono);
+}
+.unread-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); display: inline-block; margin-left: 6px; vertical-align: middle; }
+.sort-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 12px; color: var(--text-mute); }
+.sort-btn {
+  padding: 4px 10px; border-radius: 6px; font-size: 11px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-sec); cursor: pointer; transition: all 0.15s; font-family: var(--font-mono);
+}
+.sort-btn.active { background: rgba(0,229,255,0.1); border-color: rgba(0,229,255,0.3); color: var(--cyan); }
+/* ✅ Upload filter banner */
+.upload-filter-banner {
+  background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.2);
+  border-radius: var(--radius); padding: 8px 14px; margin-bottom: 14px;
+  font-size: 12px; color: var(--cyan); font-family: var(--font-mono);
+  display: flex; align-items: center; justify-content: space-between;
+}
+</style>
+</head>
+<body class="page-alerts">
+<div class="app-layout" id="app-layout">
+  <div class="main-area">
+    <div class="page-content">
+      <div class="page-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <h1>Alerts Center</h1>
+            <p>Real-time security notifications with AI-driven priority ranking</p>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <button class="btn btn-outline" onclick="markAllRead()">✓ Mark All Read</button>
+            <button class="btn btn-outline" onclick="clearAlerts()">🗑 Clear All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid-4" style="margin-bottom:18px">
+        <div class="stat-card">
+          <div class="stat-icon red">🔔</div>
+          <div class="stat-label">Unread</div>
+          <div class="stat-value red" id="unread-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">⚡</div>
+          <div class="stat-label">Critical</div>
+          <div class="stat-value amber" id="critical-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon cyan">📋</div>
+          <div class="stat-label">Total Alerts</div>
+          <div class="stat-value cyan" id="total-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✓</div>
+          <div class="stat-label">Resolved</div>
+          <div class="stat-value green" id="resolved-count">0</div>
+        </div>
+      </div>
+
+      <!-- Alerts list container -->
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this,'all')">All <span class="notif-count" id="tab-badge">0</span></button>
+        <button class="tab" onclick="switchTab(this,'critical')">P1 Critical</button>
+        <button class="tab" onclick="switchTab(this,'p2')">P2 High</button>
+        <button class="tab" onclick="switchTab(this,'threat')">Threats</button>
+        <button class="tab" onclick="switchTab(this,'system')">System</button>
+        <button class="tab" onclick="switchTab(this,'ml')">ML / AI</button>
+      </div>
+
+      <!-- Sort bar -->
+      <div class="sort-bar">
+        <span>Sort by:</span>
+        <button class="sort-btn active" onclick="sortAlerts('priority', this)">🎯 Priority Score</button>
+        <button class="sort-btn" onclick="sortAlerts('severity', this)">⚠️ Severity</button>
+        <button class="sort-btn" onclick="sortAlerts('time', this)">⏱ Time</button>
+      </div>
+
+      <div id="alerts-list">
+        <div class="empty-state" style="padding:40px">Loading alerts...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">⬆ Upload Logs</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-outline" onclick="closeUpload()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/layout.js"></script>
+<script>
+requireAuth();
+buildLayout('alerts');
+
+let alerts      = [];
+let currentTab  = 'all';
+let sortMode    = 'priority';
+
+// ✅ Read upload_id from URL if coming from dashboard "View →" link
+const _urlParams     = new URLSearchParams(window.location.search);
+let   activeUploadId = _urlParams.get('upload_id') || '';
+let   activeUploadName = '';
+
+const dismissedIds = new Set(JSON.parse(localStorage.getItem('cyberai_dismissed_alerts') || '[]'));
+
+const sevClass = { critical:'pill-critical', high:'pill-high', medium:'pill-medium', low:'pill-low' };
+const sevIcon  = { critical:'🚨', high:'⚠️', medium:'🔵', low:'🟢' };
+const priorityColor = { P1:'#ff3d5a', P2:'#ffb300', P3:'#00e5ff', P4:'#00ff88' };
+
+async function loadAlerts() {
+  try {
+    // Reload alerts from all sources
+
+    // ✅ FIXED: pass uploadId so only that upload's threats come back
+    const data    = await getThreats('', '', 100, activeUploadId);
+    const threats = data.threats || [];
+
+    const threatAlerts = threats
+      .filter(t => !dismissedIds.has(t.id))
+      .map(t => ({
+        id:             t.id,
+        sev:            t.severity,
+        icon:           sevIcon[t.severity] || '⚡',
+        title:          `${t.type} Detected`,
+        desc:           `Source: ${t.source_ip} → ${t.dest_ip||'unknown'}:${t.port||'?'} | Confidence: ${(t.confidence*100).toFixed(0)}% | ML flagged as ${t.severity.toUpperCase()}`,
+        time:           t.timestamp,
+        tag:            'threat',
+        unread:         t.status === 'active',
+        status:         t.status,
+        priority:       t.priority       || 'P4',
+        priority_label: t.priority_label || 'LOW',
+        priority_score: t.priority_score || 0,
+        priority_color: t.priority_color || '#00ff88',
+        upload_id:      t.upload_id,
+      }));
+
+    const systemAlerts = [
+      {
+        id: 'SYS-001', sev: 'low', icon: '🤖', title: 'ML Model Active',
+        desc: 'Isolation Forest model loaded and ready. SHAP explainability enabled.',
+        time: new Date().toISOString(), tag: 'ml', unread: false, status: 'resolved',
+        priority: 'P4', priority_label: 'LOW', priority_score: 10, priority_color: '#00ff88',
+      },
+      {
+        id: 'SYS-002', sev: 'low', icon: '☁️', title: 'Backend Connected',
+        desc: 'CyberAI Shield API connected. All endpoints operational.',
+        time: new Date().toISOString(), tag: 'system', unread: false, status: 'resolved',
+        priority: 'P4', priority_label: 'LOW', priority_score: 10, priority_color: '#00ff88',
+      },
+    ].filter(a => !dismissedIds.has(a.id));
+
+    alerts = [...threatAlerts, ...systemAlerts];
+    applySortAndRender();
+  } catch(e) {
+    console.error('Load alerts error:', e);
+    document.getElementById('alerts-list').innerHTML =
+      '<div class="empty-state" style="padding:40px">Could not load alerts. Make sure backend is running.</div>';
+  }
+}
+
+// ✅ Clear upload filter and reload all
+function clearUploadFilter() {
+  activeUploadId   = '';
+  activeUploadName = '';
+  document.getElementById('upload-banner').style.display = 'none';
+  loadAlerts();
+}
+
+function applySortAndRender() {
+  if (sortMode === 'priority') {
+    alerts.sort((a, b) => (b.priority_score||0) - (a.priority_score||0));
+  } else if (sortMode === 'severity') {
+    const sevOrder = { critical:0, high:1, medium:2, low:3 };
+    alerts.sort((a, b) => (sevOrder[a.sev]||3) - (sevOrder[b.sev]||3));
+  } else if (sortMode === 'time') {
+    alerts.sort((a, b) => new Date(b.time) - new Date(a.time));
+  }
+  updateStats();
+  renderAlerts(getFiltered());
+}
+
+function sortAlerts(mode, btn) {
+  sortMode = mode;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applySortAndRender();
+}
+
+function getFiltered() {
+  if (currentTab === 'all')      return alerts;
+  if (currentTab === 'critical') return alerts.filter(a => a.priority === 'P1');
+  if (currentTab === 'p2')       return alerts.filter(a => a.priority === 'P2');
+  return alerts.filter(a => a.tag === currentTab);
+}
+
+function updateStats() {
+  const unread   = alerts.filter(a => a.unread).length;
+  const critical = alerts.filter(a => a.sev === 'critical').length;
+  const resolved = alerts.filter(a => a.status === 'resolved').length;
+  document.getElementById('unread-count').textContent   = unread;
+  document.getElementById('critical-count').textContent = critical;
+  document.getElementById('total-count').textContent    = alerts.length;
+  document.getElementById('resolved-count').textContent = resolved;
+  document.getElementById('tab-badge').textContent      = unread;
+}
+
+function renderAlerts(list) {
+  const container = document.getElementById('alerts-list');
+  if (!list.length) {
+    container.innerHTML = '<div class="empty-state" style="padding:40px">No alerts in this category.</div>';
+    return;
+  }
+  container.innerHTML = list.map(a => `
+    <div class="alert-card ${a.unread?'unread':''} ${a.sev}" onclick="markRead('${a.id}')">
+      <div class="alert-icon ${a.sev}">${a.icon}</div>
+      <div class="alert-meta">
+        <div class="alert-title">
+          ${a.title}
+          ${a.unread ? '<span class="unread-dot"></span>' : ''}
+          <span class="priority-badge ${a.priority}" style="margin-left:8px">${a.priority} · ${a.priority_label}</span>
+        </div>
+        <div class="alert-desc">${a.desc}</div>
+        <div class="priority-score-wrap">
+          <div class="priority-score-bar">
+            <div class="priority-score-fill" style="width:${a.priority_score}%;background:${a.priority_color}"></div>
+          </div>
+          <span class="priority-score-num">Priority Score: ${a.priority_score}/100</span>
+        </div>
+        <div class="alert-footer" style="margin-top:6px">
+          <span class="pill ${sevClass[a.sev]||'pill-low'}">${a.sev}</span>
+          <span class="alert-time">⏱ ${formatTime(a.time)}</span>
+          <div class="alert-actions" onclick="event.stopPropagation()">
+            ${a.tag === 'threat' ? `<a href="threats.html?upload_id=${a.upload_id||''}" class="btn btn-outline" style="padding:3px 10px;font-size:11px">View Threat</a>` : ''}
+            <button class="btn btn-outline" style="padding:3px 10px;font-size:11px" onclick="dismissAlert('${a.id}')">Dismiss</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function formatTime(ts) {
+  try {
+    const d = new Date(ts);
+    const diff = Math.floor((Date.now() - d) / 60000);
+    if (diff < 1)    return 'just now';
+    if (diff < 60)   return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff/60)}h ago`;
+    return d.toLocaleDateString();
+  } catch { return ts; }
+}
+
+function markRead(id) {
+  const a = alerts.find(x => x.id === id);
+  if (a) { a.unread = false; updateStats(); renderAlerts(getFiltered()); }
+}
+
+function dismissAlert(id) {
+  dismissedIds.add(id);
+  localStorage.setItem('cyberai_dismissed_alerts', JSON.stringify([...dismissedIds]));
+  const idx = alerts.findIndex(a => a.id === id);
+  if (idx !== -1) { alerts.splice(idx, 1); updateStats(); renderAlerts(getFiltered()); }
+}
+
+function markAllRead() {
+  alerts.forEach(a => a.unread = false);
+  updateStats(); renderAlerts(getFiltered());
+}
+
+function clearAlerts() {
+  alerts.forEach(a => dismissedIds.add(a.id));
+  localStorage.setItem('cyberai_dismissed_alerts', JSON.stringify([...dismissedIds]));
+  alerts = []; updateStats(); renderAlerts([]);
+}
+
+function switchTab(btn, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  currentTab = tab;
+  renderAlerts(getFiltered());
+}
+// ✅ FIXED loadExpandContent — fetches only THIS upload's threats
+async function loadExpandContent(uploadId, uploads) {
+  const contentEl = document.getElementById(`expand-content-${uploadId}`);
+  if (!contentEl) return;
+  try {
+    const upload = uploads.find(u => u.id === uploadId);
+    if (!upload) return;
+
+    if (!upload.threats_found || upload.threats_found === 0) {
+      contentEl.innerHTML = `<div class="expand-empty">✅ No threats detected in this upload — file is clean.</div>`;
+      return;
+    }
+
+    // ✅ FIXED: pass uploadId so only that upload's 7 threats load (not all 25)
+    const data    = await getThreats('', '', 200, uploadId);
+    const threats = data.threats || [];
+
+    if (!threats.length) {
+      contentEl.innerHTML = `<div class="expand-empty">No threats found.</div>`;
+      return;
+    }
+
+    const sevClass = { critical:'pill-critical', high:'pill-high', medium:'pill-medium', low:'pill-low' };
+
+    contentEl.innerHTML = `
+      <table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>Timestamp</th><th>Threat Type</th><th>Source IP</th>
+          <th>Severity</th><th>Confidence</th><th>Action</th>
+        </tr></thead>
+        <tbody>
+          ${threats.slice(0,20).map(t => `<tr>
+            <td class="mono" style="font-size:10px">${t.timestamp}</td>
+            <td class="highlight">${t.type}</td>
+            <td class="mono">${t.source_ip}</td>
+            <td><span class="pill ${sevClass[t.severity]||'pill-low'}">${t.severity}</span></td>
+            <td class="mono">${(t.confidence*100).toFixed(0)}%</td>
+            <td><a href="threats.html?upload_id=${uploadId}"
+                   style="font-size:11px;color:var(--cyan);text-decoration:none">View →</a></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      ${threats.length > 20 ? `<div style="padding:10px 14px;font-size:11px;color:var(--text-mute);text-align:center;border-top:1px solid var(--border)">
+        Showing 20 of ${threats.length}. <a href="threats.html?upload_id=${uploadId}" style="color:var(--cyan);text-decoration:none">View all →</a>
+      </div>` : ''}`;
+
+  } catch(e) {
+    contentEl.innerHTML = `<div class="expand-empty">Could not load threats.</div>`;
+  }
+}
+loadAlerts();
+</script>
+</body>
+</html>
